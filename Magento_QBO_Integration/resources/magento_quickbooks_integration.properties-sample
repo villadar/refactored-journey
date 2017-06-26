@@ -1,0 +1,38 @@
+### Magento_QBO_Integration Configuration File
+
+## Magneto Connection
+magento.database=labt
+magento.host=rhea
+
+## Quickbooks Connection
+quickbooks.accesstoken=VOID
+quickbooks.accesssecret=VOID
+quickbooks.apptoken=VOID
+quickbooks.baseurl=https://sandbox-quickbooks.api.intuit.com/v3/company
+quickbooks.consumerkey=VOID
+quickbooks.consumersecret=VOID
+quickbooks.realmid=VOID
+
+
+## Quickbooks Configuration
+
+# Account sales revenue is deposited to
+quickbooks.depositto=Chequing-ATB
+
+# Custom field position for invoice date
+quickbooks.invoicedatefield=1
+
+# Minimum date of invoice to export exclusive
+# Date format(24 hour)=yyyy-mm-dd hh:mm:ss
+quickbooks.maxlookback=2017-02-14 00:00:00
+
+# Online class
+quickbooks.classname=Online
+
+# Payment types
+quickbooks.payment.creditcard=Squares
+quickbooks.payment.paypal=PayPals
+
+# Shpping SKU
+quickbooks.shipping.sku=SHIP001
+
