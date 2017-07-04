@@ -64,7 +64,7 @@ account.
 
 3. The program should be deterministic. The program should not rely on preserving state in between
    data transfer operations in order to function. Administrator intervention should also not be
-   needed to if the hosting environment goes down or if communication to either endpoint is
+   needed if the hosting environment goes down or if communication to either endpoint is
    interrupted.
 
 4. The Magento code has been heavily modified and is supported by a third-party developer.
@@ -84,11 +84,11 @@ support from Intuit, Java was chosen as the development platform since it is the
 creating an executable file in Linux.
 
 All sales receipts that have an invoice timestamp after the invoice time of the last transferred
-sales receipt will be transferred during a single bulk transfer operation. Each imported sales
-receipt in QuickBooks Online will include all information specified in requirement #1. A date
-specified through a program configuration setting will be used as the minimum date boundary instead
-of the last transfered invoice timestamp if the provided date is later than the timestamp
-(requirement #3).
+sales receipt will be migrated during a single bulk transfer operation. A date specified through
+a program configuration setting will be used as the minimum date boundary for the export date range
+instead of the last transfered invoice timestamp if the provided date is later than the timestamp
+(requirement #3). Each imported sales receipt in QuickBooks Online will include all information
+specified in requirement #1. 
 
 Each sales receipt will be guaranteed to have a customer email address attached to it. If an
 existing customer is found in QuickBooks Online with an email address matching the one contained in
