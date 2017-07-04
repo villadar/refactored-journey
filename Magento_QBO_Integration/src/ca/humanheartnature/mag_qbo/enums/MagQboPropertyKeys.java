@@ -67,7 +67,7 @@ public class MagQboPropertyKeys
    /** SKU for shipping service */
    public static final String QBO_SHIPPING_SKU = "quickbooks.shipping.sku";
    
-   /** Amount of time to add or subtract to the invoice time to account for timezone
+   /** Amount of hours to add or subtract to the invoice time to account for timezone
     *  differences */
    public static final String QBO_TIME_DIFF = "quickbooks.timediff";
    

@@ -36,6 +36,6 @@ quickbooks.payment.paypal=PayPals
 # Shipping service SKU
 quickbooks.shipping.sku=SHIP001
 
-# Amount of time to add or subtract to the invoice time to account for timezone
+# Amount of hours to add or subtract to the invoice time to account for timezone
 # differences
 quickbooks.timediff=-5

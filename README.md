@@ -1,6 +1,5 @@
 # Magento-QuickBooksOnline Integration
-Performs data transfer operations from a Magento-hosted, e-commerce website to Intuit's QuickBooks
-Online. 
+Transfers sales data from a Magento-hosted, e-commerce website to a QuickBooks Online account  
 
 
 ## License
@@ -64,9 +63,9 @@ account.
 2. The program should be fully automated.
 
 3. The program should be deterministic. The program should not rely on preserving state in between
-   data transfer operations to function. Administrator intervention should also not be needed to
-   interact with the program if the hosting environment goes down or if communication to either
-   endpoint is interrupted.
+   data transfer operations in order to function. Administrator intervention should also not be
+   needed to if the hosting environment goes down or if communication to either endpoint is
+   interrupted.
 
 4. The Magento code has been heavily modified and is supported by a third-party developer.
    Modification of Magento development assets for this project should be avoided in order to not
@@ -84,9 +83,12 @@ constraint #4 discourages us from using the Magento API. Out of the three langua
 support from Intuit, Java was chosen as the development platform since it is the one most suited for
 creating an executable file in Linux.
 
-All sales receipts that have an invoice timestamp after the time of the last transferred sales
-receipt will be transferred during a single bulk transfer operation. Each imported sales receipt in
-QuickBooks Online will include all information specified in requirement #1.
+All sales receipts that have an invoice timestamp after the invoice time of the last transferred
+sales receipt will be transferred during a single bulk transfer operation. Each imported sales
+receipt in QuickBooks Online will include all information specified in requirement #1. A date
+specified through a program configuration setting will be used as the minimum date boundary instead
+of the last transfered invoice timestamp if the provided date is later than the timestamp
+(requirement #3).
 
 Each sales receipt will be guaranteed to have a customer email address attached to it. If an
 existing customer is found in QuickBooks Online with an email address matching the one contained in
@@ -99,17 +101,10 @@ This number will be equal to n+1, where n is the number of existing customers wh
 first name and last name as the new customer being added and who have a number identifier in their
 display name.
 
-To ensure that the program is deterministic, the timestamp used as the lower date boundary for the
-range of receipts to be exported is not stored in a registry mechanism. Instead, a query to retrieve
-the last exported sales receipt is performed against QuickBooks Online prior to a bulk data transfer
-operation. A date specified by the user through a program configuration setting will be used as the
-minimum date boundary instead of the invoice timestamp of the last exported sales receipt if the
-provided date is later than the timestamp (requirement #3).
-
 In order to facilitate modular testing, the following two operations will also be implemented:
-1. Export bulk sales receipts from Magento to a data transfer object that is serialized into a file
-2. Import the sale receipt contents of the file generated from the operation above into QuickBooks
-   Online
+1. Export of bulk sales receipts from Magento to a data transfer object that is serialized into the
+   filesystem
+2. Import of the contents of the file generated from the operation above into QuickBooks Online
 
 
 ## Technical Specification
@@ -128,7 +123,7 @@ In order to facilitate modular testing, the following two operations will also b
 
 ### Usage
 ```
-Program:     Magento_QBO_Integration 1.0
+Program:     Magento_QBO_Integration 1.1
 Description: Performs ETL operations between a Magento database and QuickBooks Online (QBO)
 
 Positional arguments:
@@ -158,5 +153,5 @@ configuration file that would be passed into the program through the '--config' 
 - quickbooks.payment.paypal:     Payment type name for paypal transaction
 - quickbooks.shipping.sku:       SKU for shipping service. If this is not defined, then the shipping
                                  charge will be placed in the designated shipping line.
-- quickbooks.timediff:           Amount of time to add or subtract to the invoice time to account
+- quickbooks.timediff:           Amount of hours to add or subtract to the invoice time to account
                                  for timezone differences
