@@ -86,7 +86,7 @@ creating an executable file in Linux.
 All sales receipts that have an invoice timestamp after the invoice time of the last transferred
 sales receipt will be migrated during a single bulk transfer operation. A date specified through
 a program configuration setting will be used as the minimum date boundary for the export date range
-instead of the last transfered invoice timestamp if the provided date is later than the timestamp
+instead of the last transferred invoice timestamp if the provided date is later than the timestamp
 (requirement #3). Each imported sales receipt in QuickBooks Online will include all information
 specified in requirement #1. 
 
