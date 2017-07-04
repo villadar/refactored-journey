@@ -6,8 +6,10 @@
  *
  *
  * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
+ * ---  ----------  ----------------------------------------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-03  - Class is attached to item instead of entire transaction
+ *                  - Modifed inovice timestamp based on quickbooks.timediff property
  */
 package ca.humanheartnature.mag_qbo.comm;
 
@@ -45,6 +47,7 @@ import com.intuit.ipp.exception.FMSException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -84,6 +87,9 @@ public final class MagentoToQuickBooksTransformer
    /** Sku of the shipping service */
    private String shippingIndexSku;
    
+   /** Amount of time to add/subtract to invoice timestamp */
+   private String timeDiff;
+   
    
    
    /* -------------------- CONSTRUCTORS -------------------- */
@@ -112,6 +118,8 @@ public final class MagentoToQuickBooksTransformer
             MagQboPropertyKeys.QBO_PAYPAL_PAYMENT_METHOD);
       this.shippingIndexSku = config.getProperty(
             MagQboPropertyKeys.QBO_SHIPPING_SKU);
+      this.timeDiff = config.getProperty(
+            MagQboPropertyKeys.QBO_TIME_DIFF);
       
       this.qboService = qboService;
    }
@@ -176,12 +184,22 @@ public final class MagentoToQuickBooksTransformer
 
                   List<Line> items = magInvoice.getSaleItems().stream()
                      .map(magItem ->
-                        transformItemDetails(magItem, taxCodeLookup, skuLookup))
+                        transformItemDetails(magItem,
+                                             taxCodeLookup,
+                                             classLookup,
+                                             skuLookup))
                      .collect(Collectors.toList());
                   qboSalesReceipt.setLine(items);
                   
                   qboSalesReceipt.setDocNumber(magInvoice.getOrderName());
-                  qboSalesReceipt.setTxnDate(magInvoice.getTransactionDate());
+                  
+                  Calendar transactionDate = Calendar.getInstance();
+                  transactionDate.setTime((magInvoice.getTransactionDate()));
+                  if (timeDiff != null)
+                  {
+                     transactionDate.add(Calendar.HOUR_OF_DAY, Integer.parseInt(timeDiff));
+                  }
+                  qboSalesReceipt.setTxnDate(transactionDate.getTime());
                   
                   qboSalesReceipt = addQboInvoiceDateField(qboSalesReceipt, magInvoice);
                   qboSalesReceipt = addQboClass(qboSalesReceipt, classLookup);
@@ -200,6 +218,7 @@ public final class MagentoToQuickBooksTransformer
                   qboSalesReceipt = transformShippingDetails(qboSalesReceipt,
                                                              magInvoice,
                                                              shippingLookup,
+                                                             classLookup,
                                                              taxCodeRef);
                   qboSalesReceipt = transformCustomerDetails(qboSalesReceipt,
                                                              magInvoice,
@@ -304,7 +323,8 @@ public final class MagentoToQuickBooksTransformer
    }
    
    /**
-    * Add invoice date to QBO invoice
+    * Add invoice date to QBO invoice. A number of hours is added or subtracted based on
+    * <code>timeDiff</code>
     * 
     * @param qboSalesReceipt QBO receipt to append the invoice date to
     * @param magentoSalesInvoice Contains Magento data to transform
@@ -314,17 +334,23 @@ public final class MagentoToQuickBooksTransformer
    private SalesReceipt addQboInvoiceDateField(SalesReceipt qboSalesReceipt,
                                                SalesInvoice magentoSalesInvoice)
    {
-      String transactionDate = DateFormatFactory.getDateFormat(ISO_8601).format(
-            magentoSalesInvoice.getTransactionDate());
-
+      Calendar transactionDate = Calendar.getInstance();
+      transactionDate.setTime((magentoSalesInvoice.getTransactionDate()));
+      if (timeDiff != null)
+      {
+         transactionDate.add(Calendar.HOUR_OF_DAY, Integer.parseInt(timeDiff));
+      }
+      
       CustomField field = new CustomField();
       if (invoiceDateCustomField == null)
       {
          throw new DataTransformationException(
                "Custom field position for invoice date field was not specified");
       }
+      
       field.setDefinitionId(invoiceDateCustomField);
-      field.setStringValue(transactionDate);
+      field.setStringValue(
+            DateFormatFactory.getDateFormat(ISO_8601).format(transactionDate.getTime()));
       field.setType(CustomFieldTypeEnum.STRING_TYPE);
 
       qboSalesReceipt.setCustomField(Arrays.asList(field));
@@ -366,6 +392,7 @@ public final class MagentoToQuickBooksTransformer
     */
    private Line transformItemDetails(SaleItem magentoSaleItem,
                                      TaxCodeLookup taxLookup,
+                                     ClassIndexLookup classLookup,
                                      SkuToIndexLookup skuLookup)
    {
       String inventoryIndex = skuLookup.lookup(magentoSaleItem.getSKU())
@@ -385,12 +412,30 @@ public final class MagentoToQuickBooksTransformer
 
       ReferenceType taxCodeRef = new ReferenceType();
       taxCodeRef.setValue(taxCodeIndex);
+      
+      String classId;
+      try
+      {
+         classId = classLookup.lookup(className)
+            .orElseThrow(() ->
+               new DataTransformationException(
+                     "Failed to look up transaction class: " + className));
+      }
+      catch(FMSException ex)
+      {
+         throw new DataTransformationException(
+               "Failed to lookup class index: " + className);
+      }
+
+      ReferenceType classRef = new ReferenceType();
+      classRef.setValue(classId);
 
       SalesItemLineDetail saleItemDetail = new SalesItemLineDetail();
       saleItemDetail.setItemRef(productLineRef);
       saleItemDetail.setTaxCodeRef(taxCodeRef);
       saleItemDetail.setQty(new BigDecimal(magentoSaleItem.getQuantity()));
       saleItemDetail.setUnitPrice(magentoSaleItem.getUnitPrice());
+      saleItemDetail.setClassRef(classRef);
 
       Line qboSaleItem = new Line();
       qboSaleItem.setDetailType(LineDetailTypeEnum.SALES_ITEM_LINE_DETAIL);
@@ -483,6 +528,7 @@ public final class MagentoToQuickBooksTransformer
    private SalesReceipt transformShippingDetails(SalesReceipt qboSalesReceipt,
                                                  SalesInvoice magentoSalesInvoice,
                                                  ShippingIndexLookup shippingLookup,
+                                                 ClassIndexLookup classLookup,
                                                  ReferenceType transactionTaxCodeRef)
    {
       ReferenceType shippingItemRef = new ReferenceType();
@@ -503,9 +549,28 @@ public final class MagentoToQuickBooksTransformer
                new DataTransformationException(
                      "Failed to look up sku: " + shippingIndexSku +
                      "\nSKU lookup table content: " + shippingLookup));
+         
+         String classId;
+         try
+         {
+            classId = classLookup.lookup(className)
+               .orElseThrow(() ->
+                  new DataTransformationException(
+                        "Failed to look up transaction class: " + className));
+         }
+         catch(FMSException ex)
+         {
+            throw new DataTransformationException(
+                  "Failed to lookup class index: " + className);
+         }
+
+         ReferenceType classRef = new ReferenceType();
+         classRef.setValue(classId);
+         
          shippingItemRef.setValue(shippingItem.getId());
          saleItemDetail.setQty(new BigDecimal("1"));
          saleItemDetail.setUnitPrice(magentoSalesInvoice.getShippingInfo().getCost());
+         saleItemDetail.setClassRef(classRef);
          shipping.setDescription(shippingItem.getName());
       }
       else

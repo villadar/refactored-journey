@@ -26,13 +26,16 @@ quickbooks.invoicedatefield=1
 # Date format(24 hour)=yyyy-mm-dd hh:mm:ss
 quickbooks.maxlookback=2017-02-14 00:00:00
 
-# Online class
+# Class that the transaction items are set to
 quickbooks.classname=Online
 
-# Payment types
+# Payment type mappings
 quickbooks.payment.creditcard=Squares
 quickbooks.payment.paypal=PayPals
 
-# Shpping SKU
+# Shipping service SKU
 quickbooks.shipping.sku=SHIP001
 
+# Amount of time to add or subtract to the invoice time to account for timezone
+# differences
+quickbooks.timediff=-5

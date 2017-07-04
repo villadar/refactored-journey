@@ -6,8 +6,9 @@
  *
  *
  * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
+ * ---  ----------  --------------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-03  Fixed formatting of help usage message
  */
 package ca.humanheartnature.core.util;
 
@@ -312,10 +313,11 @@ public final class ArgParser
                posArgDesc.replace("\n", "\n" + ArgParser.ARG_DESC_LEFT_MARGIN) + "\n";
       }
       
-      usageMessage +=  "\nNamed arguments:\n   ";
+      usageMessage +=  "\nNamed arguments:\n";
       for (NamedArgument namedArg : namedArgList)
       {
          int totalIdentifierLength = 0;
+         usageMessage += "   ";
          
          if (namedArg.shortFormId != null)
          {
@@ -342,7 +344,7 @@ public final class ArgParser
          }
          usageMessage += "  " +
                namedArg.description.replace("\n", "\n" + ArgParser.ARG_DESC_LEFT_MARGIN) +
-               "\n   ";
+               "\n";
       }
       
       System.out.print(usageMessage);

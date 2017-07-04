@@ -8,6 +8,7 @@
  * Ver  Date        Change Log
  * ---  ----------  -----------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-03  Modified help message
  */
 package ca.humanheartnature.mag_qbo;
 
@@ -30,19 +31,21 @@ import java.util.logging.Logger;
  * <p>
  * <b>Usage Message</b>
  * <pre>
- * Program:     Magento_QBO_Integration 1.0
+ * Program:     Magento_QBO_Integration 1.1
  * Description: Performs ETL operations between a Magento database and QuickBooks Online
+ *              (QBO)
  *
  * Ordinal arguments:
  *    arg1:             Operation to execute:
  *                      mag_to_qbo - Transfer data from Magento database to QBO
- *                      extract_mag - Extract Magento database content to file
- *                      load_qbo - Load from file to QBO
+ *                      extract_mag - Extract Magento database content to the file system
+ *                      load_qbo - Load from the file system to QBO
  *
  * Nominal arguments:
  *    --user, -u        Magento database user
- *    --password, -p    Password for the database user specified by the --user argument
- *    --bean, -b        Location of the bean file to extract or load
+ *    --password, -p    Password for the Magento database user
+ *    --bean, -b        Location of the file to extract from or load to when performing
+ *                      extract_mag or load_qbo operations
  *    --config, -c      Location of this program's configuration file; mandatory argument
  *    --logging, -l     Location of the logger configuration file
  * </pre>
@@ -55,7 +58,7 @@ public final class Magento_QBO_Integration_Launcher
    
    
    /** Application version number */
-   private static final String PROGRAM_VERSION = "1.0";
+   private static final String PROGRAM_VERSION = "1.1";
    
    /** Position of operation argument */
    private static final int OPERATION_ARG = 0;
@@ -96,22 +99,25 @@ public final class Magento_QBO_Integration_Launcher
       argParser.setUsageMessageHeader(
             "Magento_QBO_Integration",
             PROGRAM_VERSION,
-            "Performs ETL operations between a Magento database and QuickBooks Online");
+            "Performs ETL operations between a Magento database and QuickBooks Online " +
+            "(QBO)");
       
       argParser.addPositionalArgument(
             "Operation to execute:\n" +
             MAG_TO_QBO_OP + " - Transfer data from Magento database to QBO\n" +
-            EXTRACT_MAG_OP + " - Extract Magento database content to file\n" +
-            LOAD_QBO_OP + " - Load from file to QBO");
+            EXTRACT_MAG_OP + " - Extract Magento database content to the file system\n" +
+            LOAD_QBO_OP + " - Load from the file system to QBO");
       
       argParser.addNamedArgument(
             MAG_USER_ARG, "-u", "Magento database user", true);
       argParser.addNamedArgument(
             MAG_PASSWORD_ARG, "-p",
-            "Password for the database user specified by the "+MAG_USER_ARG+" argument",
+            "Password for the Magento database user",
             true);
       argParser.addNamedArgument(
-            BEAN_FILE_ARG, "-b", "Location of the bean file to extract or load", true);
+            BEAN_FILE_ARG, "-b",
+            "Location of the file to extract from or load to when performing " +
+            "extract_mag or load_qbo operations", true);
       argParser.addNamedArgument(
             CONFIG_FILE_ARG, "-c",
             "Location of this program's configuration file; mandatory argument", true);

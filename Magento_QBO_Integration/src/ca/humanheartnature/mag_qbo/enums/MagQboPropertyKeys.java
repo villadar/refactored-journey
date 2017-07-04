@@ -8,6 +8,7 @@
  * Ver  Date        Change Log
  * ---  ----------  -----------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-03  Added QBO_TIME_DIFF
  */
 package ca.humanheartnature.mag_qbo.enums;
 
@@ -65,5 +66,9 @@ public class MagQboPropertyKeys
    
    /** SKU for shipping service */
    public static final String QBO_SHIPPING_SKU = "quickbooks.shipping.sku";
+   
+   /** Amount of time to add or subtract to the invoice time to account for timezone
+    *  differences */
+   public static final String QBO_TIME_DIFF = "quickbooks.timediff";
    
 }

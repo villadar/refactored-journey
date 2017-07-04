@@ -1,5 +1,6 @@
 # Magento-QuickBooksOnline Integration
-Performs data transfer operations from a Magento 1.7 database to Intuit's QuickBooks Online. 
+Performs data transfer operations from a Magento-hosted, e-commerce website to Intuit's QuickBooks
+Online. 
 
 
 ## License
@@ -11,103 +12,151 @@ Please contact villadarez@gmail.com for permission to use this code.
 
 ## Functional Specification
 
-### Overview
-QuickBooks has been chosen as the primary accounting and inventory-management software. However,
-online sales data (item sold, payment confirmation, etc.) is recorded only in Magento's SQL database
-which is located in the Linux server hosting the humanheartnature.ca website. An automated data
-exporter is needed to reconcile QuickBooks data with transactions made through the website.
+### Objective
+Lab International has chosen QuickBooks Online as their primary accounting and inventory management
+software. However, online sales receipts are recorded only into Magento, an e-commerce development
+platform, which hosts the humanheartnature.ca website. Data integration software is needed to
+reconcile online transactions made through the website with Lab International's QuickBooks Online
+account.
 
 
-### Design Criteria
-1. The only stable hosting environment for this program is the same one that is hosting the website.
+### Functional Requirements
+1. All receipts from online sales must be transferred exactly once into QuickBooks Online. An
+   imported QuickBooks Online sales receipt will have the following information filled in:
+   - Customer display name
+   - Sales receipt number, retrieved from the Magento sales receipt identifier (unique)
+   - Customer email
+   - Billing address
+   - Shipping address
+   - Shipping method
+   - Invoice timestamp
+   - Payment method
+   - Invoice number, retrieved from the Magento invoice identifier (unique)
+   - Account to deposit to; specified through user preference
+   - Product name, SKU, description, quantity, rate, amount, class, and sales tax
+   - Discount amount, if provided
+   - Shipping cost, if provided. The shipping amount can either be recorded into the designated
+     discount field or recorded as a service, depending on user preference.
+   - Total amount received
 
-2. The program must be fully automated.
+2. Imported sales receipts must be linked to a QuickBooks Online customer. If the customer that owns
+   the sales receipt does not already exist in QuickBooks Online at the time of the data transfer,
+   then a new customer will be created in QuickBooks Online. The customer email address will be used
+   as the unique key to identify a customer. The following fields must be filled in when creating a
+   new customer:
+   - Display name (unique)
+   - First name
+   - Middle name, if provided
+   - Last name
+   - Email address (unique)
+   - Billing address
+   - Shipping address
 
-3. There are no direct system administrators supporting this program. Administrator intervention
-   should not be needed if the hosting server goes down or communication to QuickBook online is
-   briefly interrupted.
+3. The functionality to exclude export data based on a given lower date boundary for the export date
+   range must be provided. This is in case the Magento database contains test data or a partial data
+   transfer has already been performed.
 
-4. The option to exclude export data based on a given date boundary should be provided in case the
-   Magento database contains test data or data that has already been exported to Magento.
 
-5. Sales receipts must be linked to a QuickBooks Online customer that will be uniquely identified by
-   their email address.
+### Design Constraints
+1. The only stable hosting environment for this program is the Linux server that is hosting the
+   website.
 
-6. Customers automatically imported to QuickBooks Online must have a unique display name.
+2. The program should be fully automated.
 
-7. All shipping, billing, sale item, tax, invoice timestamp, and discount fields in the QuickBooks
-   sales receipt page must be filled in.
+3. The program should be deterministic. The program should not rely on preserving state in between
+   data transfer operations to function. Administrator intervention should also not be needed to
+   interact with the program if the hosting environment goes down or if communication to either
+   endpoint is interrupted.
 
+4. The Magento code has been heavily modified and is supported by a third-party developer.
+   Modification of Magento development assets for this project should be avoided in order to not
+   interfere with possible Magento development in the future. Consistent behavior from the Magento
+   API is not guaranteed.
+
+
+### Implementation
+This program will be hosted on the same Linux environment that is hosting the website due to
+constraint #1. In order to meet constraint #2 and #3, the export process will be automated through
+the use of Cron as opposed to implementing this program as a daemon. Once per day, a cron tab will
+run the program which will perform a single bulk transfer operation. Communication to Magento will
+be established through a direct database connection to the underlying MySQL database, since
+constraint #4 discourages us from using the Magento API. Out of the three languages that has API
+support from Intuit, Java was chosen as the development platform since it is the one most suited for
+creating an executable file in Linux.
+
+All sales receipts that have an invoice timestamp after the time of the last transferred sales
+receipt will be transferred during a single bulk transfer operation. Each imported sales receipt in
+QuickBooks Online will include all information specified in requirement #1.
+
+Each sales receipt will be guaranteed to have a customer email address attached to it. If an
+existing customer is found in QuickBooks Online with an email address matching the one contained in
+a sales receipt, then these two entities will be linked together. If an existing customer cannot be
+found, then a new customer will be created using customer-specifc information specified in
+requirement #2. To meet the requirement of customers having a unique display name, the display name
+of a newly created customer will be set to a combination of the customer's first name, last name,
+and a 5-digit number that starts with a '#' and is padded to the left with 0's (John Smith #000001).
+This number will be equal to n+1, where n is the number of existing customers who share that same
+first name and last name as the new customer being added and who have a number identifier in their
+display name.
+
+To ensure that the program is deterministic, the timestamp used as the lower date boundary for the
+range of receipts to be exported is not stored in a registry mechanism. Instead, a query to retrieve
+the last exported sales receipt is performed against QuickBooks Online prior to a bulk data transfer
+operation. A date specified by the user through a program configuration setting will be used as the
+minimum date boundary instead of the invoice timestamp of the last exported sales receipt if the
+provided date is later than the timestamp (requirement #3).
+
+In order to facilitate modular testing, the following two operations will also be implemented:
+1. Export bulk sales receipts from Magento to a data transfer object that is serialized into a file
+2. Import the sale receipt contents of the file generated from the operation above into QuickBooks
+   Online
+
+
+## Technical Specification
 
 ### Prerequisites
-1. Credentials to Magento Database
-2. Access tokens for QuickBooks Online account
-3. The QuickBooks Online account must have:
-   - A custom field toggled on, for the purpose of storing the invoice timestamp
+1. Java Runtime Environment 8
+3. Magento version 1.7
+3. Credentials to the Magento Database
+4. Access tokens for QuickBooks Online account, retrieved through
+   https://appcenter.intuit.com/Playground/OAuth/IA/ 
+5. The QuickBooks Online account must have:
+   - A custom field for the purpose of storing the invoice timestamp toggled on
    - Shipping toggled on
    - Discount toggled on
 
 
-### Implementation
-Criteria #1 constrains this program to be hosted on the same Linux server that is hosting the
-website. In order to meet criteria #2 and #3, the export process will be automated through the use
-of a Cron Job that would run this program through a shell call. A single bulk transfer operation
-will be performed per call, as opposed to this program running as a daemon. Java has been chosen as
-the development platform because, out of the three languages that has API support from Intuit, it is
-the most suited to create an executable file in Linux.
-
-When the program is run, it exports all sales receipts after either the invoice timestamp of the
-last exported sales receipt or a time specified through the configuration file (criteria #4).
-Shipping, billing, sale item, tax, invoice timestamp, and discount fields are populated in the
-QuickBooks Online sales receipts using corresponding fields from its Magento invoice equivalent.
-Since Quickbooks Online sales receipts cannot normally store timestamps to the exact second, a
-custom field must be created to store the invoice timestamp.
-
-Each sales receipt will be guaranteed to have a customer email address attached to it. If an
-existing customer is found in QuickBooks Online with an email address matching the one contained in
-a sales receipt, then that customer will be linked to the sales receipt (criteria #5). However, if a
-customer cannot be found with an email address matching the one attached to a sales receipt, then a
-new customer will be created using the customer name, billing details, shipping details, and email
-address that is contained within the sales receipt. According to criteria #6, the display name for a
-customer in Quickbooks Online must be unique. To meet this criteria, the display name of a newly
-created customer will be set to a combination of the customer's first name, last name, and a 5-digit
-number that starts with a '#' and is padded to the left with 0's (John Smith #000001). This number
-will be equal to n+1, where n is the number of existing customers who shares that same first name
-and last name as the new customer being added.
-
-In addition to this program being able to transfer sales receipts straight from Magento to
-QuickBooks Online, an option to transfer sales receipt data to and from a data transfer object that
-is serialized to a file will also be provided.
-
 ### Usage
 ```
 Program:     Magento_QBO_Integration 1.0
-Description: Performs ETL operations between a Magento database and QuickBooks Online
+Description: Performs ETL operations between a Magento database and QuickBooks Online (QBO)
 
 Positional arguments:
    arg1:             Operation to execute:
                      mag_to_qbo - Transfer data from Magento database to QBO
-                     extract_mag - Extract Magento database content to file
-                     load_qbo - Load from file to QBO
+                     extract_mag - Extract Magento database content to the file system
+                     load_qbo - Load from the file system to QBO
 
 Named arguments:
    --user, -u        Magento database user
-   --password, -p    Password for the database user specified by the --user argument
-   --bean, -b        Location of the bean file to extract or load
+   --password, -p    Password for the Magento database user
+   --bean, -b        Location of the file to extract from or load to when performing extract_mag or
+                     load_qbo operations
    --config, -c      Location of this program's configuration file; mandatory argument
    --logging, -l     Location of the logger configuration file
 ```
 
 
-### Configurations
+### Configuration
 The following configurations can be performed by modifying the following keys found in the
-configuration file that would be passed in to the program through the --config argument.
-
+configuration file that would be passed into the program through the '--config' argument.
 - quickbooks.depositto:          Account which the sales revenue will be deposited to
 - quickbooks.invoicedatefield:   Custom field position for invoice timestamp
-- quickbooks.maxlookback:        Minimum date boundary used for criteria #4
+- quickbooks.maxlookback:        Minimum date boundary used for requirement #3
 - quickbooks.classname:          Name of the class to assign Magento sales receipts to
 - quickbooks.payment.creditcard: Payment type name for credit card transactions
 - quickbooks.payment.paypal:     Payment type name for paypal transaction
-- quickbooks.shipping.sku:       SKU for shipping service. If excluded, the shipping charge will be
-                                 placed in the designated shipping line.
+- quickbooks.shipping.sku:       SKU for shipping service. If this is not defined, then the shipping
+                                 charge will be placed in the designated shipping line.
+- quickbooks.timediff:           Amount of time to add or subtract to the invoice time to account
+                                 for timezone differences
