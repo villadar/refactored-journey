@@ -5,15 +5,18 @@
  * author. Please contact villadarez@gmail.com for permission to use this code.
  *
  *
- * Ver  Date        Change Log
+ * Ver  Date        Change Log 
  * ---  ----------  -----------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-24  - Added tax code map property file
+ *                  - Modifications to BeanFileWriter
  */
 package ca.humanheartnature.mag_qbo.comm;
 
+import ca.humanheartnature.abstracts.struct.DataTransferObject;
+import ca.humanheartnature.core.comm.BeanFileReader;
+import ca.humanheartnature.core.comm.BeanFileWriter;
 import ca.humanheartnature.core.comm.DataExtractor;
-import ca.humanheartnature.core.comm.FileReader;
-import ca.humanheartnature.core.comm.FileWriter;
 import ca.humanheartnature.core.comm.MySqlConnectionFactory;
 import static ca.humanheartnature.core.enums.DateFormatEnum.ISO_8601;
 import ca.humanheartnature.core.exception.DataExtractionException;
@@ -27,9 +30,9 @@ import ca.humanheartnature.quickbooks.comm.QboDataLoader;
 import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
 import ca.humanheartnature.quickbooks.comm.QboDataSource;
 import com.intuit.ipp.exception.FMSException;
-import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,27 +53,31 @@ public final class MagentoQboDataBridge
     * @param magentoConnFactory Generates connection to Magento MySQL database
     * @param qboService Generates connection to QuickBooks Online
     * @param config Configuration properties
+    * @param taxCodeMap Map of tax codes from Magento to QuickBooks Online
     */
    public void etlFromMagentoToQbo(MySqlConnectionFactory magentoConnFactory,
                                    QboDataServiceSingleton qboService,
-                                   Properties config)
+                                   Properties config,
+                                   Map<String, String> taxCodeMap)
    {
       try
       {
-         if (magentoConnFactory == null || qboService == null || config == null)
+         if (magentoConnFactory == null ||
+             qboService == null ||
+             config == null ||
+             taxCodeMap == null)
          {
             throw new IllegalArgumentException("Argument cannot be null");
          }
 
          LOGGER.log(Level.INFO, "Transfering data from Magento to QuickBooks Online...");
 
-         Date minDateBoundary = getMinimumDateBoundary(qboService, config);
+         Date minDateBoundary = getMinDateBoundaryFromQboOrConfig(qboService, config);
          
          DataExtractor<MagentoInvoicesDto> magentoReceiptExtractor = new DataExtractor();
-         
          magentoReceiptExtractor
             .extract(new MagentoDtoSupplier(magentoConnFactory, minDateBoundary)) 
-            .transform(new MagentoToQuickBooksTransformer(qboService, config))
+            .transform(new MagentoToQuickBooksTransformer(qboService, config, taxCodeMap))
             .load(new QboDataLoader(qboService));
       
          LOGGER.log(Level.INFO, "Data transfer finished");
@@ -94,14 +101,19 @@ public final class MagentoQboDataBridge
     * @param beanFileLoc Location of bean file to load to QBO
     * @param qboService Connection factory to QBO
     * @param config MagentoQboDataBridge configuration file
+    * @param taxCodeMap Map of tax codes from Magento to QuickBooks Online
     */
    public void loadFromBeanFileToQbo(String beanFileLoc,
                                      QboDataServiceSingleton qboService,
-                                     Properties config)
+                                     Properties config,
+                                     Map<String,String> taxCodeMap)
    {
       try
       {
-         if (beanFileLoc == null || qboService == null || config == null)
+         if (beanFileLoc == null ||
+             qboService == null ||
+             config == null ||
+             taxCodeMap == null)
          {
             throw new IllegalArgumentException("Argument cannot be null");
          }
@@ -110,35 +122,10 @@ public final class MagentoQboDataBridge
                     "Loading data from {0} to QuickBooks Online...",
                     beanFileLoc);
          
-         DataExtractor<MagentoInvoicesDto> extractor = new DataExtractor();
+         DataExtractor<DataTransferObject> extractor = new DataExtractor();
          extractor
-            .extract(() ->
-            {
-               try
-               {
-                  FileReader supplier = new FileReader();
-                  
-                  MagentoInvoicesDto magDto =
-                        (MagentoInvoicesDto) supplier.readFileToBean(beanFileLoc);
-                  
-                  LOGGER.log(Level.FINEST,
-                             "Data transfer object content:\n" +
-                             "Receipt count: {0}\n" +
-                             "Customer count: {1}\n" +
-                             "Item count: {2}",
-                             new Object[]{magDto.getSalesInvoices().size(),
-                                          magDto.getCustomers().size(),
-                                          magDto.getSaleItems().size()});
-                  
-                  return magDto;
-               }
-               catch(ClassNotFoundException | IOException ex)
-               {
-                  throw new DataExtractionException(
-                        "Failed to extract data from Magento database", ex);
-               }
-            })
-            .transform(new MagentoToQuickBooksTransformer(qboService, config))
+            .extract(new BeanFileReader(beanFileLoc))
+            .transform(new MagentoToQuickBooksTransformer(qboService, config, taxCodeMap))
             .load(new QboDataLoader(qboService));
       
          LOGGER.log(Level.INFO, "Loading finished");
@@ -158,9 +145,9 @@ public final class MagentoQboDataBridge
     * from Magento to QBO. This method exists for cases where the system running this
     * program has access to a Magento database but not QBO.
     * 
-    * @param magentoConnFactory
-    * @param beanFileLoc
-    * @param config
+    * @param magentoConnFactory Generates connection to Magento MySQL database
+    * @param beanFileLoc Location of bean file to load to QBO
+    * @param config MagentoQboDataBridge configuration file
     */
    public void extractFromMagentoToBeanFile(MySqlConnectionFactory magentoConnFactory,
                                             String beanFileLoc,
@@ -173,34 +160,12 @@ public final class MagentoQboDataBridge
       
       LOGGER.log(Level.INFO, "Extracting data from Magento DB to {0}...", beanFileLoc);
 
-      Date minDateBoundary = getMinimumDateBoundary(config);
+      Date minDateBoundary = getMinDateBoundaryFromConfig(config);
 
       DataExtractor<MagentoInvoicesDto> magentoReceiptExtractor = new DataExtractor<>();
       magentoReceiptExtractor
          .extract(new MagentoDtoSupplier(magentoConnFactory, minDateBoundary))
-         .load(dataStruct ->
-         {
-            MagentoInvoicesDto magDto = (MagentoInvoicesDto) dataStruct;
-            try
-            {
-               LOGGER.log(Level.FINEST,
-                          "Data transfer object content:\n" +
-                          "Receipt count: {0}\n" +
-                          "Customer count: {1}\n" +
-                          "Item count: {2}",
-                          new Object[]{magDto.getSalesInvoices().size(),
-                                       magDto.getCustomers().size(),
-                                       magDto.getSaleItems().size()});
-
-               FileWriter loader = new FileWriter();
-               loader.writeBeanToFile(magDto, beanFileLoc);
-            }
-            catch(IOException ex)
-            {
-               throw new DataLoadingException("Failed to write bean content to file",
-                                              ex);
-            }
-         });
+         .load(new BeanFileWriter(beanFileLoc));
 
       LOGGER.log(Level.INFO, "Extraction to bean file finished");
    }
@@ -216,7 +181,7 @@ public final class MagentoQboDataBridge
     * @param config Program configuration properties
     * @return Minimum export date boundary
     */
-   private Date getMinimumDateBoundary(Properties config)
+   private Date getMinDateBoundaryFromConfig(Properties config)
    {
       try
       {
@@ -245,8 +210,8 @@ public final class MagentoQboDataBridge
     * @return Minimum export date boundary
     * @throws FMSException 
     */
-   private Date getMinimumDateBoundary(QboDataServiceSingleton qboService,
-                                       Properties config) throws FMSException
+   private Date getMinDateBoundaryFromQboOrConfig(QboDataServiceSingleton qboService,
+                                                  Properties config) throws FMSException
    {
       QboDataSource qboDataSource = new QboDataSource(qboService);
       

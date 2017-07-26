@@ -8,6 +8,7 @@
  * Ver  Date        Change Log
  * ---  ----------  -----------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-24  Added null argument check
  */
 package ca.humanheartnature.quickbooks.util;
 
@@ -36,6 +37,10 @@ public class ShippingIndexLookup implements LookupObject<String, Item, RuntimeEx
     */
    public ShippingIndexLookup(QboDataServiceSingleton qboService) throws FMSException
    {
+      if (qboService == null)
+      {
+         throw new IllegalArgumentException("Argument cannot be null");
+      }
       
       QboDataSource dataSource = new QboDataSource(qboService);
       List<Item> inventory = dataSource.getAllActiveServices();

@@ -6,8 +6,10 @@
  *
  *
  * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
+ * ---  ----------  ------------------------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-04  - Resolved duplicate key errors when creating maps
+ *                  - Added null argument check
  */
 package ca.humanheartnature.quickbooks.util;
 
@@ -36,12 +38,18 @@ public class TaxCodeLookup implements LookupObject<String, String,RuntimeExcepti
     */
    public TaxCodeLookup(QboDataServiceSingleton qboDataService) throws FMSException
    {
+      if (qboDataService == null)
+      {
+         throw new IllegalArgumentException("Argument cannot be null");
+      }
+      
       QboDataSource dataSource = new QboDataSource(qboDataService);
       List<TaxCode> taxCodes = dataSource.getAllTaxCodes();
       
       taxCodeMap = taxCodes.stream()
          .collect(Collectors.toMap(taxCode -> taxCode.getName(),
-                                   taxCode -> taxCode.getId()));
+                                   taxCode -> taxCode.getId(),
+                                   (taxCode1, taxCode2) -> taxCode1));
    }
    
    @Override

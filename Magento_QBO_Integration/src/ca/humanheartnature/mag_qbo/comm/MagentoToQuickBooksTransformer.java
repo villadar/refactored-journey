@@ -10,6 +10,9 @@
  * 1.0  2017-06-14  Initial version
  * 1.1  2017-07-03  - Class is attached to item instead of entire transaction
  *                  - Modifed inovice timestamp based on quickbooks.timediff property
+ * 1.2  2017-07-24  - A tax code map is now used to resolve differences between Magento
+ *                    and QBO tax code identifiers
+ *                  - Minor code restructuring
  */
 package ca.humanheartnature.mag_qbo.comm;
 
@@ -49,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
@@ -90,6 +94,16 @@ public final class MagentoToQuickBooksTransformer
    /** Amount of time to add/subtract to invoice timestamp */
    private String timeDiff;
    
+   /** Map between Magento and QBO tax code identifiers */
+   private Map<String, String> taxCodeMap;
+   
+   /** True if there was an error encountered when executing the {@link #apply} method */
+   private boolean wasErrorEncountered;
+   
+   /** List of error messages appended to the <code>DataTransformationException</code>
+     * that is thrown if <code>wasErrorEncountered</code> is true */
+   private List<String> errorLog;
+   
    
    
    /* -------------------- CONSTRUCTORS -------------------- */
@@ -97,9 +111,11 @@ public final class MagentoToQuickBooksTransformer
    /**
     * @param qboService Communication interface to QBO
     * @param config Configuration properties file
+    * @param taxCodeMap Map of tax codes from Magento to QuickBooks Online
     */
    public MagentoToQuickBooksTransformer(QboDataServiceSingleton qboService,
-                                         Properties config)
+                                         Properties config,
+                                         Map<String,String> taxCodeMap)
    {
       if (qboService == null || config == null)
       {
@@ -121,6 +137,8 @@ public final class MagentoToQuickBooksTransformer
       this.timeDiff = config.getProperty(
             MagQboPropertyKeys.QBO_TIME_DIFF);
       
+      this.taxCodeMap = taxCodeMap;
+      
       this.qboService = qboService;
    }
    
@@ -140,11 +158,12 @@ public final class MagentoToQuickBooksTransformer
 
          if (salesDataTransfer.getSalesInvoices().isEmpty())
          {
-            LOGGER.log(Level.FINE, "No sales receipts in input");
+            LOGGER.log(Level.FINE, "No sales receipts to transform");
             return new QboInvoicesDto(new ArrayList<>());
          }
          
-         // Initialize lookup objects
+         /* Initialize lookup objects here prior to loop since some of their constructors
+          * retrieve data from QBO*/
          // <editor-fold defaultstate="collapsed" desc="Lookup object initialization">
          ClassIndexLookup classLookup = new ClassIndexLookup(qboService);
 
@@ -180,33 +199,19 @@ public final class MagentoToQuickBooksTransformer
             {
                try
                {
-                  SalesReceipt qboSalesReceipt = new SalesReceipt();
-
-                  List<Line> items = magInvoice.getSaleItems().stream()
-                     .map(magItem ->
-                        transformItemDetails(magItem,
-                                             taxCodeLookup,
-                                             classLookup,
-                                             skuLookup))
-                     .collect(Collectors.toList());
-                  qboSalesReceipt.setLine(items);
-                  
-                  qboSalesReceipt.setDocNumber(magInvoice.getOrderName());
-                  
-                  Calendar transactionDate = Calendar.getInstance();
-                  transactionDate.setTime((magInvoice.getTransactionDate()));
-                  if (timeDiff != null)
-                  {
-                     transactionDate.add(Calendar.HOUR_OF_DAY, Integer.parseInt(timeDiff));
-                  }
-                  qboSalesReceipt.setTxnDate(transactionDate.getTime());
-                  
-                  qboSalesReceipt = addQboInvoiceDateField(qboSalesReceipt, magInvoice);
-                  qboSalesReceipt = addQboClass(qboSalesReceipt, classLookup);
-                  
                   ReferenceType taxCodeRef = getTaxCodeReference(magInvoice,
+                                                                 taxCodeMap,
                                                                  taxCodeLookup);
-
+                  
+                  SalesReceipt qboSalesReceipt = new SalesReceipt();
+                  qboSalesReceipt = addIdentifiersAndTimestamps(qboSalesReceipt,
+                                                                magInvoice);
+                  qboSalesReceipt = addQboClass(qboSalesReceipt, classLookup);
+                  qboSalesReceipt = transformSaleItems(qboSalesReceipt,
+                                                       magInvoice,
+                                                       taxCodeRef,
+                                                       classLookup,
+                                                       skuLookup);
                   qboSalesReceipt = transformPaymentDetails(qboSalesReceipt,
                                                             magInvoice,
                                                             paymentMethodLookup);
@@ -229,10 +234,24 @@ public final class MagentoToQuickBooksTransformer
                catch (FMSException ex)
                {
                   throw new DataTransformationException(
-                                 "Failed to connect to QuickBooks Online", ex);
+                        "Failed to connect to QuickBooks Online", ex);
+               }
+               catch (MagToQboTransformException ex)
+               {
+                  wasErrorEncountered = true; // Can't use mutable local variables in lambda
+                  errorLog.add(ex.getMessage());
+                  return null;
                }
             })
             .collect(Collectors.toList());
+         
+            if (wasErrorEncountered)
+            {
+               String errorMessage = errorLog.stream()
+                     .collect(Collectors.joining("\n"));
+               throw new DataTransformationException(
+                     "Errors encountered during data translation:\n" + errorMessage);
+            }
 
             return new QboInvoicesDto(qboReceipts);
          }
@@ -248,115 +267,78 @@ public final class MagentoToQuickBooksTransformer
    /* -------------------- PRIVATE METHODS -------------------- */
    
    /**
-    * Adds a new customer to QBO. The display name of the customer must be unique so a his
-    * full name is appended with a # and an auto-incrementing 5 digit number that is
-    * padded to the left with zeros
+    * Generates QBO API reference object to the tax code. The tax code named identifier
+    * between Magento and QBO may be different so <code>taxCodeMap</code> is used to
+    * resolve the differences.
     * 
-    * @param magCustomer Magento customer DAO whose attributes are used to populate QBO
-    *                    API customer
-    * @return New QBO customer, whose internal index attributes are filled in
+    * @param magentoSalesInvoice Contains Magento data to transform
+    * @param taxCodeMap Map between Magento and QBO tax code identifiers
+    * @param taxCodeLookup Used to populate the internal index of the qbo tax code
+    * @return QBO tax code reference
+    * @throws FMSException 
     */
-   private com.intuit.ipp.data.Customer addNewCustomerToQbo(Customer magCustomer)
+   private ReferenceType getTaxCodeReference(SalesInvoice magentoSalesInvoice,
+                                             Map<String, String> taxCodeMap,
+                                             TaxCodeLookup taxCodeLookup)
    {
-      try
-      {
-         com.intuit.ipp.data.Customer newCustomer = new com.intuit.ipp.data.Customer();
-         
-         newCustomer.setFullyQualifiedName(magCustomer.getFullName());
-         newCustomer.setGivenName(magCustomer.getFirstName());
-         newCustomer.setMiddleName(magCustomer.getMiddleName());
-         newCustomer.setFamilyName(magCustomer.getLastName());
-
-         EmailAddress customerEmailAddr = new EmailAddress();
-         customerEmailAddr.setAddress(magCustomer.getEmail());
-         newCustomer.setPrimaryEmailAddr(customerEmailAddr);
-
-         PhysicalAddress billAddress = new PhysicalAddress();
-         billAddress.setLine1(magCustomer.getBillingAddress().getFullAddress());
-         newCustomer.setBillAddr(billAddress);
-
-         PhysicalAddress shipAddress = new PhysicalAddress();
-         shipAddress.setLine1(magCustomer.getShippingAddress().getFullAddress());
-
-         newCustomer.setShipAddr(shipAddress);
-
-         QboDataManipulator dataInserter = new QboDataManipulator(qboService);
-         newCustomer =  dataInserter.addCustomer(newCustomer);
-
-         return newCustomer;
-      }
-      catch(FMSException ex)
-      {
-         throw new DataTransformationException(
-               "Failed to connect to QuickBooks Online", ex);
-      }
+      SaleItem magSaleItem = magentoSalesInvoice.getSaleItems().stream()
+         .findAny()
+         .orElseThrow(() ->
+            new MagToQboTransformException(
+                  "Failed to retrieve tax code reference ID:\n" +
+                  "Cannot find sale item in receipt"));
+            
+      String qboTaxCode = taxCodeMap.get(magSaleItem.getTaxCode());
+      
+      String taxCodeIndex = taxCodeLookup.lookup(qboTaxCode)
+         .orElseThrow(() ->
+            new MagToQboTransformException(
+                  "Failed to look up tax code: " + magSaleItem.getTaxCode() +
+                  "\nTax code lookup table content: " + taxCodeLookup));
+            
+      ReferenceType taxCodeRef = new ReferenceType();
+      taxCodeRef.setValue(taxCodeIndex);
+      
+      return taxCodeRef;
    }
    
    /**
-    * Transform payment details from Magento DAO to QBO
+    * Sets the receipt identifier to the Magento order identifier. Adds the invoice date
+    * to the native and custom date fields
     * 
     * @param qboSalesReceipt QBO receipt to append the payment details to
     * @param magentoSalesInvoice Contains Magento data to transform
-    * @param paymentLookup Lookup table used to resolve QBO API internal indeces
-    * @return QBO receipt with payment details appended to it
-    * @throws FMSException 
     */
-   private SalesReceipt transformPaymentDetails(SalesReceipt qboSalesReceipt,
-                                                SalesInvoice magentoSalesInvoice,
-                                                PaymentMethodIndexLookup paymentLookup)
-                                                throws FMSException
+   private SalesReceipt addIdentifiersAndTimestamps(SalesReceipt qboSalesReceipt,
+                                                    SalesInvoice magInvoice)
    {
-      String paymentMethodIndex =
-            paymentLookup.lookup(magentoSalesInvoice.getPaymentMethod())
-               .orElseThrow(() ->
-                  new DataTransformationException(
-                        "Failed to look up payment method type: " +
-                        magentoSalesInvoice.getPaymentMethod().name() +
-                        "\nPayment method lookup table content: " + paymentLookup));
+      // Set receipt name identifier
+      qboSalesReceipt.setDocNumber(magInvoice.getOrderName());
 
-      ReferenceType paymentMethodRef = new ReferenceType();
-      paymentMethodRef.setValue(paymentMethodIndex);
-
-      qboSalesReceipt.setPaymentMethodRef(paymentMethodRef);
-      
-      return qboSalesReceipt;
-   }
-   
-   /**
-    * Add invoice date to QBO invoice. A number of hours is added or subtracted based on
-    * <code>timeDiff</code>
-    * 
-    * @param qboSalesReceipt QBO receipt to append the invoice date to
-    * @param magentoSalesInvoice Contains Magento data to transform
-    * @return QBO receipt with invoice date appended to it
-    * @throws FMSException 
-    */
-   private SalesReceipt addQboInvoiceDateField(SalesReceipt qboSalesReceipt,
-                                               SalesInvoice magentoSalesInvoice)
-   {
+      // Set QBO transaction date
       Calendar transactionDate = Calendar.getInstance();
-      transactionDate.setTime((magentoSalesInvoice.getTransactionDate()));
+      transactionDate.setTime((magInvoice.getTransactionDate()));
       if (timeDiff != null)
       {
          transactionDate.add(Calendar.HOUR_OF_DAY, Integer.parseInt(timeDiff));
       }
+      qboSalesReceipt.setTxnDate(transactionDate.getTime());
       
+      // Add invoice timestamp 
       CustomField field = new CustomField();
       if (invoiceDateCustomField == null)
       {
-         throw new DataTransformationException(
+         throw new MagToQboTransformException(
                "Custom field position for invoice date field was not specified");
       }
-      
       field.setDefinitionId(invoiceDateCustomField);
       field.setStringValue(
             DateFormatFactory.getDateFormat(ISO_8601).format(transactionDate.getTime()));
       field.setType(CustomFieldTypeEnum.STRING_TYPE);
-
       qboSalesReceipt.setCustomField(Arrays.asList(field));
       
       return qboSalesReceipt;
-   }  
+   }
    
    /**
     * Add class to QBO invoice
@@ -371,12 +353,38 @@ public final class MagentoToQuickBooksTransformer
    {
       String classId = classLookup.lookup(className)
          .orElseThrow(() ->
-            new DataTransformationException(
+            new MagToQboTransformException(
                   "Failed to look up transaction class: " + className));
 
       ReferenceType classRef = new ReferenceType();
       classRef.setValue(classId);
       qboSalesReceipt.setClassRef(classRef);
+      
+      return qboSalesReceipt;
+   }
+   
+   /**
+    * Transform and add all Magento sale items in the receipt to QBO
+    * 
+    * @param qboSalesReceipt QBO receipt to append the payment details to
+    * @param magentoSalesInvoice Contains Magento data to transform
+    * @param taxCodeRef Reference to the tax code attached to the receipt
+    * @param skuLookup Looks up QBO inventory indexes using SKU
+    */
+   private SalesReceipt transformSaleItems(SalesReceipt qboSalesReceipt,
+                                           SalesInvoice magInvoice,
+                                           ReferenceType taxCodeRef,
+                                           ClassIndexLookup classLookup,
+                                           SkuToIndexLookup skuLookup)
+   {
+      List<Line> items = magInvoice.getSaleItems().stream()
+         .map(magItem ->
+            transformItemDetails(magItem,
+                                 taxCodeRef,
+                                 classLookup,
+                                 skuLookup))
+         .collect(Collectors.toList());
+      qboSalesReceipt.setLine(items);
       
       return qboSalesReceipt;
    }
@@ -391,39 +399,30 @@ public final class MagentoToQuickBooksTransformer
     * @throws FMSException 
     */
    private Line transformItemDetails(SaleItem magentoSaleItem,
-                                     TaxCodeLookup taxLookup,
+                                     ReferenceType taxCodeRef,
                                      ClassIndexLookup classLookup,
                                      SkuToIndexLookup skuLookup)
    {
       String inventoryIndex = skuLookup.lookup(magentoSaleItem.getSKU())
          .orElseThrow(() -> 
-            new DataTransformationException(
+            new MagToQboTransformException(
                   "Failed to look up sku: " + magentoSaleItem.getSKU() +
                   "\nSKU lookup table content: " + skuLookup));
 
       ReferenceType productLineRef = new ReferenceType();
       productLineRef.setValue(inventoryIndex);
-
-      String taxCodeIndex = taxLookup.lookup(magentoSaleItem.getTaxCode())
-         .orElseThrow(() -> 
-            new DataTransformationException(
-                  "Failed to look up tax code: " + magentoSaleItem.getTaxCode() +
-                  "\nPayment method lookup table content: " + taxLookup));
-
-      ReferenceType taxCodeRef = new ReferenceType();
-      taxCodeRef.setValue(taxCodeIndex);
       
       String classId;
       try
       {
          classId = classLookup.lookup(className)
             .orElseThrow(() ->
-               new DataTransformationException(
+               new MagToQboTransformException(
                      "Failed to look up transaction class: " + className));
       }
       catch(FMSException ex)
       {
-         throw new DataTransformationException(
+         throw new MagToQboTransformException(
                "Failed to lookup class index: " + className);
       }
 
@@ -444,6 +443,36 @@ public final class MagentoToQuickBooksTransformer
       qboSaleItem.setDescription(magentoSaleItem.getDisplayName());
 
       return qboSaleItem;
+   }
+   
+   /**
+    * Transform payment details from Magento DAO to QBO
+    * 
+    * @param qboSalesReceipt QBO receipt to append the payment details to
+    * @param magentoSalesInvoice Contains Magento data to transform
+    * @param paymentLookup Lookup table used to resolve QBO API internal indeces
+    * @return QBO receipt with payment details appended to it
+    * @throws FMSException 
+    */
+   private SalesReceipt transformPaymentDetails(SalesReceipt qboSalesReceipt,
+                                                SalesInvoice magentoSalesInvoice,
+                                                PaymentMethodIndexLookup paymentLookup)
+                                                throws FMSException
+   {
+      String paymentMethodIndex =
+            paymentLookup.lookup(magentoSalesInvoice.getPaymentMethod())
+               .orElseThrow(() ->
+                  new MagToQboTransformException(
+                        "Failed to look up payment method type: " +
+                        magentoSalesInvoice.getPaymentMethod().name() +
+                        "\nPayment method lookup table content: " + paymentLookup));
+
+      ReferenceType paymentMethodRef = new ReferenceType();
+      paymentMethodRef.setValue(paymentMethodIndex);
+
+      qboSalesReceipt.setPaymentMethodRef(paymentMethodRef);
+      
+      return qboSalesReceipt;
    }
    
    /**
@@ -470,7 +499,7 @@ public final class MagentoToQuickBooksTransformer
 
       String depositToAccountId = accountLookup.lookup(depositToAccountName)
          .orElseThrow(() ->
-            new DataTransformationException(
+            new MagToQboTransformException(
                   "Failed to look up deposit account: " + depositToAccountName +
                   "\nPayment method lookup table content: " +
                   accountLookup));
@@ -546,7 +575,7 @@ public final class MagentoToQuickBooksTransformer
       {
          Item shippingItem = shippingLookup.lookup(shippingIndexSku)
             .orElseThrow(() -> 
-               new DataTransformationException(
+               new MagToQboTransformException(
                      "Failed to look up sku: " + shippingIndexSku +
                      "\nSKU lookup table content: " + shippingLookup));
          
@@ -555,12 +584,12 @@ public final class MagentoToQuickBooksTransformer
          {
             classId = classLookup.lookup(className)
                .orElseThrow(() ->
-                  new DataTransformationException(
+                  new MagToQboTransformException(
                         "Failed to look up transaction class: " + className));
          }
          catch(FMSException ex)
          {
-            throw new DataTransformationException(
+            throw new MagToQboTransformException(
                   "Failed to lookup class index: " + className);
          }
 
@@ -626,33 +655,64 @@ public final class MagentoToQuickBooksTransformer
    }
    
    /**
-    * Generates a tax code reference
+    * Adds a new customer to QBO. The display name of the customer must be unique so a his
+    * full name is appended with a # and an auto-incrementing 5 digit number that is
+    * padded to the left with zeros
     * 
-    * @param magentoSalesInvoice Contains Magento data to transform
-    * @param taxCodeLookup Used to populate the internal index of the qbo tax code
-    * @return QBO tax code reference
-    * @throws FMSException 
+    * @param magCustomer Magento customer DAO whose attributes are used to populate QBO
+    *                    API customer
+    * @return New QBO customer, whose internal index attributes are filled in
     */
-   private ReferenceType getTaxCodeReference(SalesInvoice magentoSalesInvoice,
-                                             TaxCodeLookup taxCodeLookup)
+   private com.intuit.ipp.data.Customer addNewCustomerToQbo(Customer magCustomer)
    {
-      SaleItem saleItem = magentoSalesInvoice.getSaleItems().stream()
-         .findAny()
-         .orElseThrow(() ->
-            new DataTransformationException(
-                  "Failed to retrieve tax code reference ID:\n" +
-                  "Cannot find sale item in receipt"));
-            
-      String taxCodeIndex = taxCodeLookup.lookup(saleItem.getTaxCode())
-         .orElseThrow(() ->
-            new DataTransformationException(
-                  "Failed to look up tax code: " + saleItem.getTaxCode() +
-                  "\nTax code lookup table content: " + taxCodeLookup));
-            
-      ReferenceType taxCodeRef = new ReferenceType();
-      taxCodeRef.setValue(taxCodeIndex);
-      
-      return taxCodeRef;
+      try
+      {
+         com.intuit.ipp.data.Customer newCustomer = new com.intuit.ipp.data.Customer();
+         
+         newCustomer.setFullyQualifiedName(magCustomer.getFullName());
+         newCustomer.setGivenName(magCustomer.getFirstName());
+         newCustomer.setMiddleName(magCustomer.getMiddleName());
+         newCustomer.setFamilyName(magCustomer.getLastName());
+
+         EmailAddress customerEmailAddr = new EmailAddress();
+         customerEmailAddr.setAddress(magCustomer.getEmail());
+         newCustomer.setPrimaryEmailAddr(customerEmailAddr);
+
+         PhysicalAddress billAddress = new PhysicalAddress();
+         billAddress.setLine1(magCustomer.getBillingAddress().getFullAddress());
+         newCustomer.setBillAddr(billAddress);
+
+         PhysicalAddress shipAddress = new PhysicalAddress();
+         shipAddress.setLine1(magCustomer.getShippingAddress().getFullAddress());
+
+         newCustomer.setShipAddr(shipAddress);
+
+         QboDataManipulator dataInserter = new QboDataManipulator(qboService);
+         newCustomer =  dataInserter.addCustomer(newCustomer);
+
+         return newCustomer;
+      }
+      catch(FMSException ex)
+      {
+         throw new DataTransformationException(
+               "Failed to connect to QuickBooks Online", ex);
+      }
+   }
+   
+   /**
+    * Represents exceptions that may occur during the execution of the {@link #apply}
+    * method. Defined so it can be caught separately from all other externally defined
+    * exceptions. Messages placed in this exception will be batched together into one
+    * message placed in a {@link DataTransformationException} that is thrown after the
+    * <code>apply</code> method iterates through the entire list of receipts passed in
+    * through its parameter.
+    */
+   private class MagToQboTransformException extends RuntimeException
+   {
+      private MagToQboTransformException(String message)
+      {
+         super(message);
+      }
    }
                      
 }

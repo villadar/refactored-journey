@@ -8,6 +8,7 @@
  * Ver  Date        Change Log
  * ---  ----------  -----------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-24  Added null argument check
  */
 package ca.humanheartnature.quickbooks.util;
 
@@ -35,6 +36,11 @@ public class ClassIndexLookup implements LookupObject<String, String, FMSExcepti
     */
    public ClassIndexLookup(QboDataServiceSingleton dataService)
    {
+      if (dataService == null)
+      {
+         throw new IllegalArgumentException("Argument cannot be null");
+      }
+      
       this.qboDataService = dataService;
    }
    

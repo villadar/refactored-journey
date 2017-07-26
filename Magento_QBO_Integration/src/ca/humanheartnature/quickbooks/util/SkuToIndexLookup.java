@@ -8,6 +8,7 @@
  * Ver  Date        Change Log
  * ---  ----------  -----------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-24  Added null argument check
  */
 package ca.humanheartnature.quickbooks.util;
 
@@ -39,6 +40,11 @@ public class SkuToIndexLookup implements LookupObject<String, String, RuntimeExc
    public SkuToIndexLookup(QboDataServiceSingleton qboService, Set<String> skus)
          throws FMSException
    {
+      if (qboService == null || skus == null)
+      {
+         throw new IllegalArgumentException("Argument cannot be null");
+      }
+      
       QboDataSource dataSource = new QboDataSource(qboService);
       List<Item> inventory = dataSource.getSaleItemsBySkus(skus);
       skuToIndexMapping = inventory.stream()

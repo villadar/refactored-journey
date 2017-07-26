@@ -50,12 +50,9 @@ public class QboDataManipulator
     */
    public Customer addCustomer(Customer customer) throws FMSException
    {
-      if (customer.getDisplayName() != null)
+      if (customer == null)
       {
-         /* This exception is thrown to prevent redundant code that sets the display name
-          * outside of this method */
-         throw new IllegalArgumentException(
-               "Display name must be null since it is set by this method");
+         throw new IllegalArgumentException("Argument cannot be null");
       }
       
       QboDataSource qboDataSource = new QboDataSource(qboService);
@@ -78,9 +75,11 @@ public class QboDataManipulator
       customer.setDisplayName(customer.getFullyQualifiedName() + displayNameSuffix);
       
       LOGGER.log(Level.FINER,
-                 "Adding new customer to QuickBooks\n" +
-                 "Display name: " + customer.getDisplayName() + "\n" +
-                 "Email: " + customer.getPrimaryEmailAddr().getAddress());
+            "Adding new customer to QuickBooks\n" +
+            "Display name: {0}\n" +
+            "Email: {1}",
+            new Object[] {customer.getDisplayName(),
+                          customer.getPrimaryEmailAddr().getAddress()});
       
       return qboService.getInstance().add(customer);
    }

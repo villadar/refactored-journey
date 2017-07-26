@@ -8,6 +8,7 @@
  * Ver  Date        Change Log
  * ---  ----------  -----------------------------------
  * 1.0  2017-06-14  Initial version
+ * 1.1  2017-07-24  Added null argument check
  */
 package ca.humanheartnature.quickbooks.util;
 
@@ -39,6 +40,11 @@ public class CustomerEmailToIndexLookup
    public CustomerEmailToIndexLookup(QboDataServiceSingleton dataService,
                                      Set<String> emails) throws FMSException
    {
+      if (dataService == null || emails == null)
+      {
+         throw new IllegalArgumentException("Argument cannot be null");
+      }
+      
       QboDataSource dataSource = new QboDataSource(dataService);
       
       List<Customer> customersWithId = dataSource.getCustomersByEmail(emails);

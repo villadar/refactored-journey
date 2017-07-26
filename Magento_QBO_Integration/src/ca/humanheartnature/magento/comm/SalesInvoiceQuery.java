@@ -271,7 +271,7 @@ public class SalesInvoiceQuery implements JdbcQuery<SalesInvoice>
             query.selectClause = 
                   ", catalog_product_flat_1.name, "
                   + "catalog_product_flat_1.sku, "
-                  + "catalog_product_flat_1.price AS UNIT_PRICE, "
+                  + "sales_flat_order_item.base_price AS UNIT_PRICE, "
                   + "sales_flat_order_item.qty_invoiced, "
                   + "sales_flat_order_item.row_total AS LINE_PRICE, "
                   + "sales_order_tax.code";
