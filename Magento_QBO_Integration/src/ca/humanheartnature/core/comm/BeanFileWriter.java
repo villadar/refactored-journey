@@ -14,7 +14,7 @@ import java.io.Serializable;
 import java.util.function.Consumer;
 
 /**
- * Serializes DataBean objects into a file in the file system
+ * Serializes objects into a file in the file system
  */
 public class BeanFileWriter implements Consumer<Serializable>
 {
@@ -36,10 +36,10 @@ public class BeanFileWriter implements Consumer<Serializable>
    }
    
    /**
-    * Serializes the parameter <code>DataBean</code> to a file at the location specified
-    * in the constructor
+    * Serializes the parameter object to a file at the location specified in the
+    * constructor
     * 
-    * @param bean <code>DataBean</code> to write to file
+    * @param bean Object to write to file
     */
    @Override
    public void accept(Serializable bean)
