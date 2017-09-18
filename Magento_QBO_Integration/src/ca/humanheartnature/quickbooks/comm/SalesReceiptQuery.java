@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -40,8 +35,15 @@ public class SalesReceiptQuery implements QboQuery<SalesReceipt>
    private SalesReceiptQuery(){}
    
    
+   /**
+    * Perform query to retrieve list of sales receipts from QBO
+    * 
+    * @param conn QBO connection factory
+    * @return List of sales receipts from QuickBooks Online
+    * @throws FMSException 
+    */
    @Override
-   public List<SalesReceipt> execute(QboDataServiceSingleton conn) throws FMSException
+   public List<SalesReceipt> execute(QboDataConnectionFactory conn) throws FMSException
    {
       try
       {
@@ -53,7 +55,7 @@ public class SalesReceiptQuery implements QboQuery<SalesReceipt>
 
          LOGGER.log(Level.FINER, "QuickBooks Online query:\n{0}", query);
       
-         QueryResult queryResult = conn.getInstance().executeQuery(query);
+         QueryResult queryResult = conn.getConnection().executeQuery(query);
          return (List<SalesReceipt>) queryResult.getEntities();
       }
       catch (FMSException ex)

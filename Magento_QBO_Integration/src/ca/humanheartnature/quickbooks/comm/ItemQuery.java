@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -40,8 +35,14 @@ public class ItemQuery implements QboQuery<Item>
    private ItemQuery(){}
    
    
+   /**
+    * Execute query to retrieve list of QBO inventory items
+    * @param conn QBO connection
+    * @return List of QBO inventory items
+    * @throws FMSException 
+    */
    @Override
-   public List<Item> execute(QboDataServiceSingleton conn) throws FMSException
+   public List<Item> execute(QboDataConnectionFactory conn) throws FMSException
    {
       String query = "SELECT * " +
                      "FROM item " +
@@ -49,7 +50,7 @@ public class ItemQuery implements QboQuery<Item>
       
       LOGGER.log(Level.FINER, "QuickBooks Online query:\n" + query);
          
-      QueryResult queryResult = conn.getInstance().executeQuery(query);
+      QueryResult queryResult = conn.getConnection().executeQuery(query);
       List<Item> items = (List<Item>) queryResult.getEntities();
       
       LOGGER.log(Level.FINER, "Result set size: " + items.size());

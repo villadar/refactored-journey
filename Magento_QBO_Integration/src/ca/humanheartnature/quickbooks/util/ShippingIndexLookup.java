@@ -3,17 +3,11 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
- * 1.1  2017-07-24  Added null argument check
  */
 package ca.humanheartnature.quickbooks.util;
 
 import ca.humanheartnature.abstracts.util.LookupObject;
-import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
+import ca.humanheartnature.quickbooks.comm.QboDataConnectionFactory;
 import ca.humanheartnature.quickbooks.comm.QboDataSource;
 import com.intuit.ipp.data.Item;
 import com.intuit.ipp.exception.FMSException;
@@ -35,7 +29,7 @@ public class ShippingIndexLookup implements LookupObject<String, Item, RuntimeEx
     * @param qboService Used to perform SQL queries against QBO
     * @throws FMSException 
     */
-   public ShippingIndexLookup(QboDataServiceSingleton qboService) throws FMSException
+   public ShippingIndexLookup(QboDataConnectionFactory qboService) throws FMSException
    {
       if (qboService == null)
       {
@@ -50,6 +44,9 @@ public class ShippingIndexLookup implements LookupObject<String, Item, RuntimeEx
                                    (item1, item2) -> item1));
    }
    
+   /**
+    * @return Contents of the map used by this class
+    */
    @Override
    public String toString()
    {
@@ -60,7 +57,12 @@ public class ShippingIndexLookup implements LookupObject<String, Item, RuntimeEx
       });
       return commaDelimited.toString();
    }
-
+   
+   /**
+    * @param sku SKU of the shipping service to retrieve the index of
+    * @return Internal QBO index of the shipping service referred to by the SKU parameter,
+    * if it exists in QBO
+    */
    @Override
    public Optional<Item> lookup(String sku)
    {

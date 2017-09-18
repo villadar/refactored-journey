@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.magento.struct;
 
@@ -17,25 +12,41 @@ import java.math.BigDecimal;
 /**
  * Contains details regarding the shipping information for a customer or company
  */
-public class ShippingInfo extends DatabaseAccessObject
+public class ShippingInfo implements DatabaseAccessObject
 {
    private static final long serialVersionUID = 1L;
    
    /** Shipping address */
-   private String address;
+   private final String address;
    
    /** Shipping designation */
-   private String designation;
+   private final String designation;
    
    /** Shipping cost */
-   private BigDecimal cost;
+   private final BigDecimal cost;
+   
+   
+   
+   /* -------------------- CONSTRUCTORS -------------------- */
+   
+   /**
+    * @param address Shipping address
+    * @param designation Shipping designation
+    * @param cost Shipping cost
+    */
+   private ShippingInfo(String address, String designation, BigDecimal cost)
+   {
+      this.address = address;
+      this.designation = designation;
+      this.cost = cost;
+   }
 
    
    
-   /* -------------------- ACCESSORS/MUTATORS -------------------- */
+   /* -------------------- ACCESSORS -------------------- */
    
    /**
-    * @return ShippingInfo address
+    * @return Shipping address 
     */
    public String getAddress()
    {
@@ -43,15 +54,7 @@ public class ShippingInfo extends DatabaseAccessObject
    }
 
    /**
-    * @param address ShippingInfo address
-    */
-   public void setAddress(String address)
-   {
-      this.address = address;
-   }
-
-   /**
-    * @return ShippingInfo designation
+    * @return Shipping designation
     */
    public String getDesignation()
    {
@@ -59,27 +62,70 @@ public class ShippingInfo extends DatabaseAccessObject
    }
 
    /**
-    * @param name ShippingInfo designation
-    */
-   public void setDesignation(String name)
-   {
-      this.designation = name;
-   }
-
-   /**
-    * @return ShippingInfo cost
+    * @return Shipping cost
     */
    public BigDecimal getCost()
    {
       return cost;
    }
-
+   
+   
+   
+   /* -------------------- NESTED CLASSES -------------------- */
+   
    /**
-    * @param cost ShippingInfo cost
+    * Generates an immutable <code>ShippingInfo</code> object whose fields are
+    * populated through the builder's set methods
     */
-   public void setCost(BigDecimal cost)
+   public static class Builder
    {
-      this.cost = cost;
+      /** Shipping address */
+      private String address;
+
+      /** Shipping designation */
+      private String designation;
+
+      /** Shipping cost */
+      private BigDecimal cost;
+      
+      /**
+       * @return <code>ShippingInfo</code> object whose fields are populated
+       * from <code>ShippingInfoBuilder</code> set methods
+       */
+      public ShippingInfo build()
+      {
+         return new ShippingInfo(address, designation, cost);
+      }
+
+      /**
+       * @param address Shipping address
+       * @return Current object
+       */
+      public Builder setAddress(String address)
+      {
+         this.address = address;
+         return this;
+      }
+
+      /**
+       * @param name Shipping designation
+       * @return Current object
+       */
+      public Builder setDesignation(String name)
+      {
+         this.designation = name;
+         return this;
+      }
+
+      /**
+       * @param cost Shipping cost
+       * @return Current object
+       */
+      public Builder setCost(BigDecimal cost)
+      {
+         this.cost = cost;
+         return this;
+      }
    }
    
 }

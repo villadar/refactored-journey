@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -38,8 +33,14 @@ public class PaymentMethodQuery implements QboQuery<PaymentMethod>
     */
    private PaymentMethodQuery(){}
    
+   /**
+    * Perform query to retrieve list of payment methods
+    * @param conn QBO connection
+    * @return List of QBO payment methods
+    * @throws FMSException 
+    */
    @Override
-   public List<PaymentMethod> execute(QboDataServiceSingleton conn) throws FMSException
+   public List<PaymentMethod> execute(QboDataConnectionFactory conn) throws FMSException
    {
       String query = "SELECT name, id " +
                      "FROM paymentmethod " +
@@ -47,7 +48,7 @@ public class PaymentMethodQuery implements QboQuery<PaymentMethod>
       
       LOGGER.log(Level.FINER, "QuickBooks Online query:\n{0}", query);
          
-      QueryResult queryResult = conn.getInstance().executeQuery(query);
+      QueryResult queryResult = conn.getConnection().executeQuery(query);
       List<PaymentMethod> items = (List<PaymentMethod>) queryResult.getEntities();
       
       LOGGER.log(Level.FINER, "Result set size: {0}", items.size());

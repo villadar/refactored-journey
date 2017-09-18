@@ -7,16 +7,16 @@
 package ca.humanheartnature.core.exception;
 
 /**
- * This exception is a proxy for all possible checked exception types that could be thrown
- * during a supplier operation to read a file in the file system. This was created since
- * exception types aren't declared in {@link java.util.function.Consumer#accept}.
+ * Represents exceptions generated when performing authentication or CRUD operations
+ * against QuickBooks Online. Created due to inability to throw the checked exception 
+ * {@link com.intuit.ipp.exception.FMSException} from FunctionalInterfaces
  */
-public class FileReadException extends RuntimeException
+public class QboException extends RuntimeException
 {
    /**
     * @see Exception#Exception()
     */
-   public FileReadException()
+   public QboException()
    {
    }
    
@@ -24,7 +24,7 @@ public class FileReadException extends RuntimeException
     * @param msg Exception message
     * @see Exception#Exception(String) 
     */
-   public FileReadException(String msg)
+   public QboException(String msg)
    {
       super(msg);
    }
@@ -33,7 +33,7 @@ public class FileReadException extends RuntimeException
     * @param ex Wrapped exception
     * @see Exception#Exception(Throwable)
     */
-   public FileReadException(Throwable ex)
+   public QboException(Throwable ex)
    {
       super(ex);
    }
@@ -43,9 +43,8 @@ public class FileReadException extends RuntimeException
     * @param ex Wrapped exception
     * @see Exception#Exception(String, Throwable)
     */
-   public FileReadException(String msg, Throwable ex)
+   public QboException(String msg, Throwable ex)
    {
       super(msg, ex);
    }
-   
 }

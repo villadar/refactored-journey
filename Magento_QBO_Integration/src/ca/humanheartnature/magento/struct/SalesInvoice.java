@@ -3,63 +3,103 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.magento.struct;
 
 import ca.humanheartnature.abstracts.struct.DatabaseAccessObject;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * A single sale transaction of one or more products
  */
-public class SalesInvoice extends DatabaseAccessObject
+public class SalesInvoice implements DatabaseAccessObject
 {
    private static final long serialVersionUID = 1L;
    
    /** Primary index */
-   private Integer index;
+   private final Integer index;
    
    /** Display name for order in Magento backend */
-   private String orderName;
+   private final String orderName;
    
    /** Display name for invoice in Magento backend */
-   private String invoiceName;
+   private final String invoiceName;
    
    /** Products sold in the transaction */
-   private List<SaleItem> saleItems;
+   private final List<SaleItem> saleItems;
    
    /** Customer whom this transaction belongs to */
-   private Customer customer;
+   private final Customer customer;
    
    /** Date and time the sale was made */
-   private Date transactionDate;
+   private final Date transactionDate;
    
    /** Total discount amount */
-   private BigDecimal totalDiscount;
+   private final BigDecimal totalDiscount;
    
    /** Total amount paid */
-   private BigDecimal grandTotal;
+   private final BigDecimal grandTotal;
    
    /** ShippingInfo information */
-   private ShippingInfo shippingInfo;
-   
-   public enum PaymentMethodEnum{SQUARE, PAYPAL}
+   private final ShippingInfo shippingInfo;
    
    /** Payment method (Cash, Credit Card,...) */
-   private PaymentMethodEnum paymentMethod;
+   private final PaymentMethodEnum paymentMethod;
+   
+   /** Online payment type, either SQUARE or PAYPAL */
+   public enum PaymentMethodEnum{SQUARE, PAYPAL}
+   
+   
+   
+   /* -------------------- CONSTRUCTOR -------------------- */
+   
+   /**
+    * @param index Primary index
+    * @param orderName Display name for order in Magento backend
+    * @param invoiceName Display name for invoice in Magento backend
+    * @param saleItems Products sold in the transaction
+    * @param customer Customer whom this transaction belongs to
+    * @param transactionDate Date and time the sale was made
+    * @param totalDiscount Total discount amount
+    * @param grandTotal Total amount paid
+    * @param shippingInfo ShippingInfo information
+    * @param paymentMethod Payment method (Cash, Credit Card,...)
+    */
+   private SalesInvoice(Integer index,
+                        String orderName,
+                        String invoiceName,
+                        List<SaleItem> saleItems,
+                        Customer customer,
+                        Date transactionDate,
+                        BigDecimal totalDiscount,
+                        BigDecimal grandTotal,
+                        ShippingInfo shippingInfo,
+                        PaymentMethodEnum paymentMethod)
+   {
+      this.index = index;
+      this.orderName = orderName;
+      this.invoiceName = invoiceName;
+      this.saleItems = saleItems;
+      this.customer = customer;
+      this.transactionDate = transactionDate;
+      this.totalDiscount = totalDiscount;
+      this.grandTotal = grandTotal;
+      this.shippingInfo = shippingInfo;
+      this.paymentMethod = paymentMethod;
+   }
 
    
    
    /* -------------------- OVERRIDDEN METHODS -------------------- */
    
+   /**
+    * @param obj Object to compare equivalency
+    * @return True if {@link #index} are equal
+    */
    @Override
    public boolean equals(Object obj)
    {
@@ -83,7 +123,7 @@ public class SalesInvoice extends DatabaseAccessObject
 
    
    
-   /* -------------------- ACCESSORS/MUTATORS -------------------- */
+   /* -------------------- ACCESSORS -------------------- */
    
    /**
     * @return Products sold in the transaction
@@ -91,14 +131,6 @@ public class SalesInvoice extends DatabaseAccessObject
    public List<SaleItem> getSaleItems()
    {
       return saleItems;
-   }
-
-   /**
-    * @param salesItems Products sold in the transaction
-    */
-   public void setSaleItems(List<SaleItem> salesItems)
-   {
-      this.saleItems = salesItems;
    }
 
    /**
@@ -110,27 +142,11 @@ public class SalesInvoice extends DatabaseAccessObject
    }
 
    /**
-    * @param customer Customer whom this transaction belongs to
-    */
-   public void setCustomer(Customer customer)
-   {
-      this.customer = customer;
-   }
-
-   /**
     * @return Date and time the sale was made
     */
    public Date getTransactionDate()
    {
       return transactionDate;
-   }
-
-   /**
-    * @param transactionDate Date and time the sale was made
-    */
-   public void setTransactionDate(Date transactionDate)
-   {
-      this.transactionDate = transactionDate;
    }
 
    /**
@@ -142,27 +158,11 @@ public class SalesInvoice extends DatabaseAccessObject
    }
 
    /**
-    * @param total Total amount paid
-    */
-   public void setGrandTotal(BigDecimal total)
-   {
-      this.grandTotal = total;
-   }
-
-   /**
     * @return Primary index
     */
    public Integer getIndex()
    {
       return index;
-   }
-
-   /**
-    * @param index Primary index
-    */
-   public void setIndex(Integer index)
-   {
-      this.index = index;
    }
 
    /**
@@ -174,27 +174,11 @@ public class SalesInvoice extends DatabaseAccessObject
    }
 
    /**
-    * @param shippingInfo ShippingInfo information
-    */
-   public void setShippingInfo(ShippingInfo shippingInfo)
-   {
-      this.shippingInfo = shippingInfo;
-   }
-
-   /**
     * @return Display name for order in Magento backend
     */
    public String getOrderName()
    {
       return orderName;
-   }
-
-   /**
-    * @param name Display name for order in Magento backend
-    */
-   public void setOrderName(String name)
-   {
-      this.orderName = name;
    }
 
    /**
@@ -206,27 +190,11 @@ public class SalesInvoice extends DatabaseAccessObject
    }
 
    /**
-    * @param name Display name for invoice in Magento backend
-    */
-   public void setInvoiceName(String name)
-   {
-      this.invoiceName = name;
-   }
-
-   /**
     * @return Total discount amount
     */
    public BigDecimal getTotalDiscount()
    {
       return totalDiscount;
-   }
-
-   /**
-    * @param totalDiscount Total discount amount
-    */
-   public void setTotalDiscount(BigDecimal totalDiscount)
-   {
-      this.totalDiscount = totalDiscount;
    }
 
    /**
@@ -236,13 +204,166 @@ public class SalesInvoice extends DatabaseAccessObject
    {
       return paymentMethod;
    }
-
+   
+   
+   
+   /* -------------------- NESTED CLASSES -------------------- */
+   
    /**
-    * @param paymentMethod Payment method (Cash, Credit Card,...)
+    * Generates an immutable <code>SaleInvoice</code> object whose fields are
+    * populated through the builder's set methods
     */
-   public void setPaymentMethod(PaymentMethodEnum paymentMethod)
-   {
-      this.paymentMethod = paymentMethod;
+   public static class Builder
+   {  
+      /** Primary index */
+      private Integer index;
+
+      /** Display name for order in Magento backend */
+      private String orderName;
+
+      /** Display name for invoice in Magento backend */
+      private String invoiceName;
+
+      /** Products sold in the transaction */
+      private List<SaleItem> saleItems = new LinkedList<>();
+
+      /** Customer whom this transaction belongs to */
+      private Customer customer;
+
+      /** Date and time the sale was made */
+      private Date transactionDate;
+
+      /** Total discount amount */
+      private BigDecimal totalDiscount;
+
+      /** Total amount paid */
+      private BigDecimal grandTotal;
+
+      /** ShippingInfo information */
+      private ShippingInfo shippingInfo;
+
+      /** Payment method (Cash, Credit Card,...) */
+      private PaymentMethodEnum paymentMethod;
+      
+      
+      /**
+       * @return <code>SalesInvoice</code> object whose fields are populated
+       * from <code>SalesInvoiceBuilder</code> set methods
+       */
+      public SalesInvoice build()
+      {
+         return new SalesInvoice(index,
+                                 orderName,
+                                 invoiceName,
+                                 saleItems,
+                                 customer,
+                                 transactionDate,
+                                 totalDiscount,
+                                 grandTotal,
+                                 shippingInfo,
+                                 paymentMethod);
+      }
+
+      /**
+       * @param salesItems Products sold in the transaction
+       * @return Current object
+       */
+      public Builder setSaleItems(List<SaleItem> salesItems)
+      {
+         this.saleItems = salesItems;
+         return this;
+      }
+
+      /**
+       * @param customer Customer whom this transaction belongs to
+       * @return Current object
+       */
+      public Builder setCustomer(Customer customer)
+      {
+         this.customer = customer;
+         return this;
+      }
+
+      /**
+       * @param transactionDate Date and time the sale was made
+       * @return Current object
+       */
+      public Builder setTransactionDate(Date transactionDate)
+      {
+         this.transactionDate = transactionDate;
+         return this;
+      }
+
+      /**
+       * @param total Total amount paid
+       * @return Current object
+       */
+      public Builder setGrandTotal(BigDecimal total)
+      {
+         this.grandTotal = total;
+         return this;
+      }
+
+      /**
+       * @param index Primary index
+       * @return Current object
+       */
+      public Builder setIndex(Integer index)
+      {
+         this.index = index;
+         return this;
+      } 
+
+      /**
+       * @param shippingInfo ShippingInfo information
+       * @return Current object
+       */
+      public Builder setShippingInfo(ShippingInfo shippingInfo)
+      {
+         this.shippingInfo = shippingInfo;
+         return this;
+      }
+
+      /**
+       * @param name Display name for order in Magento backend
+       * @return Current object
+       */
+      public Builder setOrderName(String name)
+      {
+         this.orderName = name;
+         return this;
+      }
+
+      /**
+       * @param name Display name for invoice in Magento backend
+       * @return Current object
+       */
+      public Builder setInvoiceName(String name)
+      {
+         this.invoiceName = name;
+         return this;
+      }
+
+      /**
+       * @param totalDiscount Total discount amount
+       * @return Current object
+       */
+      public Builder setTotalDiscount(BigDecimal totalDiscount)
+      {
+         this.totalDiscount = totalDiscount;
+         return this;
+      }
+
+      /**
+       * @param paymentMethod Payment method (Cash, Credit Card,...)
+       * @return Current object
+       */
+      public Builder setPaymentMethod(PaymentMethodEnum paymentMethod)
+      {
+         this.paymentMethod = paymentMethod;
+         return this;
+      }
+
    }
    
 }

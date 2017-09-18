@@ -3,29 +3,20 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  ----------------------------------------------------------------
- * 1.0  2017-06-14  Initial version
- * 1.1  2017-07-03  - Class is attached to item instead of entire transaction
- *                  - Modifed inovice timestamp based on quickbooks.timediff property
- * 1.2  2017-07-24  - A tax code map is now used to resolve differences between Magento
- *                    and QBO tax code identifiers
- *                  - Minor code restructuring
  */
 package ca.humanheartnature.mag_qbo.comm;
 
 import static ca.humanheartnature.core.enums.DateFormatEnum.ISO_8601;
 import ca.humanheartnature.core.exception.DataTransformationException;
+import ca.humanheartnature.core.exception.QboException;
 import ca.humanheartnature.core.util.DateFormatFactory;
 import ca.humanheartnature.mag_qbo.enums.MagQboPropertyKeys;
 import ca.humanheartnature.magento.struct.Customer;
 import ca.humanheartnature.magento.struct.MagentoInvoicesDto;
 import ca.humanheartnature.magento.struct.SaleItem;
 import ca.humanheartnature.magento.struct.SalesInvoice;
-import ca.humanheartnature.quickbooks.comm.QboDataManipulator;
-import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
+import ca.humanheartnature.quickbooks.comm.QboCustomerInserter;
+import ca.humanheartnature.quickbooks.comm.QboDataConnectionFactory;
 import ca.humanheartnature.quickbooks.struct.QboInvoicesDto;
 import ca.humanheartnature.quickbooks.util.ClassIndexLookup;
 import ca.humanheartnature.quickbooks.util.CustomerEmailToIndexLookup;
@@ -71,7 +62,7 @@ public final class MagentoToQuickBooksTransformer
          Logger.getLogger(MagentoToQuickBooksTransformer.class.getName());
    
    /** Connection to QuickBooksOnline */
-   private final QboDataServiceSingleton qboService;
+   private final QboDataConnectionFactory qboService;
    
    /** Field position for the invoice date custom field */
    private final String invoiceDateCustomField;
@@ -98,11 +89,11 @@ public final class MagentoToQuickBooksTransformer
    private Map<String, String> taxCodeMap;
    
    /** True if there was an error encountered when executing the {@link #apply} method */
-   private boolean wasErrorEncountered;
+   private boolean hasErrorEncountered;
    
    /** List of error messages appended to the <code>DataTransformationException</code>
      * that is thrown if <code>wasErrorEncountered</code> is true */
-   private List<String> errorLog;
+   private final List<String> errorLog = new ArrayList<>();
    
    
    
@@ -113,7 +104,7 @@ public final class MagentoToQuickBooksTransformer
     * @param config Configuration properties file
     * @param taxCodeMap Map of tax codes from Magento to QuickBooks Online
     */
-   public MagentoToQuickBooksTransformer(QboDataServiceSingleton qboService,
+   public MagentoToQuickBooksTransformer(QboDataConnectionFactory qboService,
                                          Properties config,
                                          Map<String,String> taxCodeMap)
    {
@@ -146,6 +137,12 @@ public final class MagentoToQuickBooksTransformer
    
    /* -------------------- OVERRIDDEN METHODS -------------------- */
    
+   /**
+    * Transform Magento sales receipts to QBO sales invoices
+    * 
+    * @param salesDataTransfer Magento sales receipts to transform
+    * @return QBO sales receipts generated from the method argument
+    */
    @Override
    public QboInvoicesDto apply(MagentoInvoicesDto salesDataTransfer)
    {
@@ -231,21 +228,21 @@ public final class MagentoToQuickBooksTransformer
 
                   return qboSalesReceipt;
                }
-               catch (FMSException ex)
+               catch (FMSException | QboException ex)
                {
                   throw new DataTransformationException(
-                        "Failed to connect to QuickBooks Online", ex);
+                        "Communication error with QuickBooks Online", ex);
                }
                catch (MagToQboTransformException ex)
                {
-                  wasErrorEncountered = true; // Can't use mutable local variables in lambda
+                  hasErrorEncountered = true; // Can't use mutable local variables in lambda
                   errorLog.add(ex.getMessage());
                   return null;
                }
             })
             .collect(Collectors.toList());
          
-            if (wasErrorEncountered)
+            if (hasErrorEncountered)
             {
                String errorMessage = errorLog.stream()
                      .collect(Collectors.joining("\n"));
@@ -665,38 +662,30 @@ public final class MagentoToQuickBooksTransformer
     */
    private com.intuit.ipp.data.Customer addNewCustomerToQbo(Customer magCustomer)
    {
-      try
-      {
-         com.intuit.ipp.data.Customer newCustomer = new com.intuit.ipp.data.Customer();
-         
-         newCustomer.setFullyQualifiedName(magCustomer.getFullName());
-         newCustomer.setGivenName(magCustomer.getFirstName());
-         newCustomer.setMiddleName(magCustomer.getMiddleName());
-         newCustomer.setFamilyName(magCustomer.getLastName());
+      com.intuit.ipp.data.Customer newCustomer = new com.intuit.ipp.data.Customer();
 
-         EmailAddress customerEmailAddr = new EmailAddress();
-         customerEmailAddr.setAddress(magCustomer.getEmail());
-         newCustomer.setPrimaryEmailAddr(customerEmailAddr);
+      newCustomer.setFullyQualifiedName(magCustomer.getFullName());
+      newCustomer.setGivenName(magCustomer.getFirstName());
+      newCustomer.setMiddleName(magCustomer.getMiddleName());
+      newCustomer.setFamilyName(magCustomer.getLastName());
 
-         PhysicalAddress billAddress = new PhysicalAddress();
-         billAddress.setLine1(magCustomer.getBillingAddress().getFullAddress());
-         newCustomer.setBillAddr(billAddress);
+      EmailAddress customerEmailAddr = new EmailAddress();
+      customerEmailAddr.setAddress(magCustomer.getEmail());
+      newCustomer.setPrimaryEmailAddr(customerEmailAddr);
 
-         PhysicalAddress shipAddress = new PhysicalAddress();
-         shipAddress.setLine1(magCustomer.getShippingAddress().getFullAddress());
+      PhysicalAddress billAddress = new PhysicalAddress();
+      billAddress.setLine1(magCustomer.getBillingAddress().getFullAddress());
+      newCustomer.setBillAddr(billAddress);
 
-         newCustomer.setShipAddr(shipAddress);
+      PhysicalAddress shipAddress = new PhysicalAddress();
+      shipAddress.setLine1(magCustomer.getShippingAddress().getFullAddress());
 
-         QboDataManipulator dataInserter = new QboDataManipulator(qboService);
-         newCustomer =  dataInserter.addCustomer(newCustomer);
+      newCustomer.setShipAddr(shipAddress);
 
-         return newCustomer;
-      }
-      catch(FMSException ex)
-      {
-         throw new DataTransformationException(
-               "Failed to connect to QuickBooks Online", ex);
-      }
+      QboCustomerInserter dataInserter = new QboCustomerInserter(qboService);
+      newCustomer =  dataInserter.apply(newCustomer);
+
+      return newCustomer;
    }
    
    /**

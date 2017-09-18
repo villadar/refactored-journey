@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -40,9 +35,15 @@ public class CustomerQuery implements QboQuery<Customer>
     */
    private CustomerQuery(){}
    
-   
+   /**
+    * Perform query to retrieve list of QBO customers
+    * 
+    * @param conn QBO connection
+    * @return List of QBO customers
+    * @throws FMSException 
+    */
    @Override
-   public List<Customer> execute(QboDataServiceSingleton conn) throws FMSException
+   public List<Customer> execute(QboDataConnectionFactory conn) throws FMSException
    {
       String query =
             "SELECT * " +
@@ -52,7 +53,7 @@ public class CustomerQuery implements QboQuery<Customer>
       
       LOGGER.log(Level.FINER, "QuickBooks Online query:\n{0}", query);
          
-      QueryResult queryResult = conn.getInstance().executeQuery(query);
+      QueryResult queryResult = conn.getConnection().executeQuery(query);
       List<Customer> customers = (List<Customer>)queryResult.getEntities();
       LOGGER.log(Level.FINER, "Result set size: {0}", customers.size());
       return customers;

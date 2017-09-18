@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.magento.struct;
 
@@ -19,32 +14,63 @@ import java.util.Objects;
  * Represents an inventory item type. A quantity attribute is provided if this class were
  * to represent a single or set of items
  */
-public class SaleItem extends DatabaseAccessObject
+public class SaleItem implements DatabaseAccessObject
 {
    private static final long serialVersionUID = 1L;
    
    /** Total price with tax */
-   private BigDecimal total_price_with_tax;
+   private final BigDecimal total_price_with_tax;
    
    /** Stock keeping unit identifier */
-   private String SKU;
+   private final String SKU;
    
    /** Name displayed to customer */
-   private String displayName;
+   private final String displayName;
    
-   /** {@link ProductSet} can only contain unique products so define quantity at here */
-   private int quantity;
+   /** Quantity of items of the same type */
+   private final int quantity;
    
    /** Price per single unit of the product */
-   private BigDecimal unitPrice;
+   private final BigDecimal unitPrice;
    
    /** Code for tax applied on product */
-   private String taxCode;
+   private final String taxCode;
+   
+   
+   
+   /* -------------------- CONSTRUCTORS -------------------- */
+   
+   /**
+    * @param total_price_with_tax Total price with tax
+    * @param SKU Stock keeping unit identifier
+    * @param displayName Name displayed to customer
+    * @param quantity Quantity of items of the same type
+    * @param unitPrice Price per single unit of the product
+    * @param taxCode Code for tax applied on product
+    */
+   private SaleItem(BigDecimal total_price_with_tax,
+                   String SKU,
+                   String displayName,
+                   int quantity,
+                   BigDecimal unitPrice,
+                   String taxCode)
+   {
+      this.total_price_with_tax = total_price_with_tax;
+      this.SKU = SKU;
+      this.displayName = displayName;
+      this.quantity = quantity;
+      this.unitPrice = unitPrice;
+      this.taxCode = taxCode;
+   }
 
    
    
    /* -------------------- OVERRIDDEN METHODS -------------------- */
    
+   /**
+    * @param obj Object to compare equivalency
+    * @return True if {@link #SKU} are equal
+    */
    @Override
    public boolean equals(Object obj)
    {
@@ -68,7 +94,7 @@ public class SaleItem extends DatabaseAccessObject
 
    
    
-   /* -------------------- ACCESSORS/MUTATORS -------------------- */
+   /* -------------------- ACCESSORS -------------------- */
    
    /**
     * @return Total price with tax
@@ -76,14 +102,6 @@ public class SaleItem extends DatabaseAccessObject
    public BigDecimal getTotalPriceWithTax()
    {
       return total_price_with_tax;
-   }
-
-   /**
-    * @param totalPrice Total price with tax
-    */
-   public void setTotalPriceWithTax(BigDecimal totalPrice)
-   {
-      this.total_price_with_tax = totalPrice;
    }
 
    /**
@@ -95,27 +113,11 @@ public class SaleItem extends DatabaseAccessObject
    }
 
    /**
-    * @param SKU Stock keeping unit identifier
-    */
-   public void setSKU(String SKU)
-   {
-      this.SKU = SKU;
-   }
-
-   /**
     * @return Name displayed to customer
     */
    public String getDisplayName()
    {
       return displayName;
-   }
-
-   /**
-    * @param displayName Name displayed to customer
-    */
-   public void setDisplayName(String displayName)
-   {
-      this.displayName = displayName;
    }
 
    /**
@@ -128,28 +130,11 @@ public class SaleItem extends DatabaseAccessObject
    }
 
    /**
-    * @param quantity {@link ProductSet} can only contain unique products so define
-    * quantity at here
-    */
-   public void setQuantity(int quantity)
-   {
-      this.quantity = quantity;
-   }
-
-   /**
     * @return Code for tax applied on product
     */
    public String getTaxCode()
    {
       return taxCode;
-   }
-
-   /**
-    * @param taxCode Code for tax applied on product
-    */
-   public void setTaxCode(String taxCode)
-   {
-      this.taxCode = taxCode;
    }
 
    /**
@@ -159,13 +144,110 @@ public class SaleItem extends DatabaseAccessObject
    {
       return unitPrice;
    }
-
+   
+   
+   
+   /* -------------------- NESTED CLASSES -------------------- */
+   
    /**
-    * @param unitPrice Price per single unit of the product
+    * Generates an immutable <code>SaleItem</code> object whose fields are
+    * populated through the builder's set methods
     */
-   public void setUnitPrice(BigDecimal unitPrice)
-   {
-      this.unitPrice = unitPrice;
+   public static class Builder
+   {    
+      /** Total price with tax */
+      private BigDecimal total_price_with_tax;
+
+      /** Stock keeping unit identifier */
+      private String SKU;
+
+      /** Name displayed to customer */
+      private String displayName;
+
+      /** {@link ProductSet} can only contain unique products so define quantity at here */
+      private int quantity;
+
+      /** Price per single unit of the product */
+      private BigDecimal unitPrice;
+
+      /** Code for tax applied on product */
+      private String taxCode;
+      
+      /**
+       * @return <code>SaleItem</code> object whose fields are populated from
+       * <code>SaleItemBuilder</code> set methods
+       */
+      public SaleItem build()
+      {
+         return new SaleItem(total_price_with_tax,
+                             SKU,
+                             displayName,
+                             quantity,
+                             unitPrice,
+                             taxCode);
+      }
+       
+      /**
+       * @param totalPrice Total price with tax
+       * @return Current object
+       */
+      public Builder setTotalPriceWithTax(BigDecimal totalPrice)
+      {
+         this.total_price_with_tax = totalPrice;
+         return this;
+      }
+
+      /**
+       * @param SKU Stock keeping unit identifier
+       * @return Current object
+       */
+      public Builder setSKU(String SKU)
+      {
+         this.SKU = SKU;
+         return this;
+      }
+
+      /**
+       * @param displayName Name displayed to customer
+       * @return Current object
+       */
+      public Builder setDisplayName(String displayName)
+      {
+         this.displayName = displayName;
+         return this;
+      }
+
+      /**
+       * @param quantity {@link ProductSet} can only contain unique products so define
+       * quantity at here
+       * @return Current object
+       */
+      public Builder setQuantity(int quantity)
+      {
+         this.quantity = quantity;
+         return this;
+      }
+
+      /**
+       * @param taxCode Code for tax applied on product
+       * @return Current object
+       */
+      public Builder setTaxCode(String taxCode)
+      {
+         this.taxCode = taxCode;
+         return this;
+      }
+
+      /**
+       * @param unitPrice Price per single unit of the product
+       * @return Current object
+       */
+      public Builder setUnitPrice(BigDecimal unitPrice)
+      {
+         this.unitPrice = unitPrice;
+         return this;
+      }
+      
    }
    
 }

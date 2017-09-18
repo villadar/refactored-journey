@@ -3,13 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log 
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
- * 1.1  2017-07-24  - Added tax code map property file
- *                  - Modifications to BeanFileWriter
  */
 package ca.humanheartnature.mag_qbo.comm;
 
@@ -26,8 +19,8 @@ import ca.humanheartnature.core.util.DateFormatFactory;
 import ca.humanheartnature.mag_qbo.enums.MagQboPropertyKeys;
 import ca.humanheartnature.magento.comm.MagentoDtoSupplier;
 import ca.humanheartnature.magento.struct.MagentoInvoicesDto;
-import ca.humanheartnature.quickbooks.comm.QboDataLoader;
-import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
+import ca.humanheartnature.quickbooks.comm.QboSalesInvoiceLoader;
+import ca.humanheartnature.quickbooks.comm.QboDataConnectionFactory;
 import ca.humanheartnature.quickbooks.comm.QboDataSource;
 import com.intuit.ipp.exception.FMSException;
 import java.text.ParseException;
@@ -56,7 +49,7 @@ public final class MagentoQboDataBridge
     * @param taxCodeMap Map of tax codes from Magento to QuickBooks Online
     */
    public void etlFromMagentoToQbo(MySqlConnectionFactory magentoConnFactory,
-                                   QboDataServiceSingleton qboService,
+                                   QboDataConnectionFactory qboService,
                                    Properties config,
                                    Map<String, String> taxCodeMap)
    {
@@ -78,7 +71,7 @@ public final class MagentoQboDataBridge
          magentoReceiptExtractor
             .extract(new MagentoDtoSupplier(magentoConnFactory, minDateBoundary)) 
             .transform(new MagentoToQuickBooksTransformer(qboService, config, taxCodeMap))
-            .load(new QboDataLoader(qboService));
+            .load(new QboSalesInvoiceLoader(qboService));
       
          LOGGER.log(Level.INFO, "Data transfer finished");
       }
@@ -104,7 +97,7 @@ public final class MagentoQboDataBridge
     * @param taxCodeMap Map of tax codes from Magento to QuickBooks Online
     */
    public void loadFromBeanFileToQbo(String beanFileLoc,
-                                     QboDataServiceSingleton qboService,
+                                     QboDataConnectionFactory qboService,
                                      Properties config,
                                      Map<String,String> taxCodeMap)
    {
@@ -126,7 +119,7 @@ public final class MagentoQboDataBridge
          extractor
             .extract(new BeanFileReader(beanFileLoc))
             .transform(new MagentoToQuickBooksTransformer(qboService, config, taxCodeMap))
-            .load(new QboDataLoader(qboService));
+            .load(new QboSalesInvoiceLoader(qboService));
       
          LOGGER.log(Level.INFO, "Loading finished");
       }
@@ -210,7 +203,7 @@ public final class MagentoQboDataBridge
     * @return Minimum export date boundary
     * @throws FMSException 
     */
-   private Date getMinDateBoundaryFromQboOrConfig(QboDataServiceSingleton qboService,
+   private Date getMinDateBoundaryFromQboOrConfig(QboDataConnectionFactory qboService,
                                                   Properties config) throws FMSException
    {
       QboDataSource qboDataSource = new QboDataSource(qboService);

@@ -3,15 +3,9 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.core.comm;
 
-import ca.humanheartnature.abstracts.comm.DataInterface;
 import ca.humanheartnature.abstracts.struct.DataTransferObject;
 import ca.humanheartnature.core.exception.DataExtractionException;
 import java.util.function.Supplier;
@@ -24,7 +18,8 @@ import java.util.function.Supplier;
 public class DataExtractor<T extends DataTransferObject> 
 {
    /**
-    * Extracts data from an external source through a {@link DataInterface} of type T
+    * Extracts data from an external source through a
+    * {@link ca.humanheartnature.abstracts.comm.DataConnectionFactory} of type T
     * 
     * @param supplier Functional interface that generates <code>DataStructure</code>s
     * @return <code>DataStructure</code> object

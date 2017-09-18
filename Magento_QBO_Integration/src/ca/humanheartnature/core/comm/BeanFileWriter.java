@@ -3,26 +3,20 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-07-23  Initial version
  */
 package ca.humanheartnature.core.comm;
 
-import ca.humanheartnature.abstracts.comm.DataInterface;
-import ca.humanheartnature.abstracts.struct.DataBean;
 import ca.humanheartnature.core.exception.WriteToFileException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.function.Consumer;
 
 /**
  * Serializes DataBean objects into a file in the file system
  */
-public class BeanFileWriter implements DataInterface, Consumer<DataBean>
+public class BeanFileWriter implements Consumer<Serializable>
 {
    /** Location in the file system to write the file to */
    private String fileLocation;
@@ -48,7 +42,7 @@ public class BeanFileWriter implements DataInterface, Consumer<DataBean>
     * @param bean <code>DataBean</code> to write to file
     */
    @Override
-   public void accept(DataBean bean)
+   public void accept(Serializable bean)
    {
       if (bean == null)
       {

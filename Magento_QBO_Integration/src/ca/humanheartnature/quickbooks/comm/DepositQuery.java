@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -27,14 +22,21 @@ public class DepositQuery implements QboQuery<Deposit>
    private static final Logger LOGGER = Logger.getLogger(DepositQuery.class.getName());
    
    
+   /**
+    * Perform query to retrieve list of QBO deposit accounts
+    * 
+    * @param conn QBO connection
+    * @return List of QBO deposit accounts
+    * @throws FMSException 
+    */
    @Override
-   public List<Deposit> execute(QboDataServiceSingleton conn) throws FMSException
+   public List<Deposit> execute(QboDataConnectionFactory conn) throws FMSException
    {
       String query = "SELECT * FROM deposit";
       
       LOGGER.log(Level.FINER, "QuickBooks Online query:\n{0}", query);
          
-      QueryResult queryResult = conn.getInstance().executeQuery(query);
+      QueryResult queryResult = conn.getConnection().executeQuery(query);
       List<Deposit> deposits = (List<Deposit>) queryResult.getEntities();
       LOGGER.log(Level.FINER, "Result set size: {0}", deposits.size());
       return deposits;

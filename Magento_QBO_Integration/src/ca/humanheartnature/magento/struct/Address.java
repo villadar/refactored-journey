@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.magento.struct;
 
@@ -16,18 +11,29 @@ import ca.humanheartnature.abstracts.struct.DatabaseAccessObject;
 /**
  * Contains location details of a database entity
  */
-public class Address extends DatabaseAccessObject
+public class Address implements DatabaseAccessObject
 {
    private static final long serialVersionUID = 1L;
    
    /** Province */
-   private String province;
+   private final String province;
    
    /** Street address */
-   private String fullAddress;
+   private final String fullAddress;
    
    
-   /* -------------------- ACCESSORS/MUTATORS -------------------- */
+   
+   /* -------------------- CONSTRUCTORS -------------------- */
+   
+   private Address(String province, String fullAddress)
+   {
+      this.province = province;
+      this.fullAddress = fullAddress;
+   }
+   
+   
+   
+   /* -------------------- ACCESSORS -------------------- */
    
    /**
     * @return Province
@@ -38,27 +44,58 @@ public class Address extends DatabaseAccessObject
    }
 
    /**
-    * @param province Province
-    */
-   public void setProvince(String province)
-   {
-      this.province = province;
-   }
-
-   /**
     * @return Street address
     */
    public String getFullAddress()
    {
       return fullAddress;
    }
-
+   
+   
+   
+   /* -------------------- NESTED CLASSES -------------------- */
+   
    /**
-    * @param streetAddress Street address
+    * Generates an immutable <code>Address</code> object whose fields are
+    * populated through the builder's set methods
     */
-   public void setFullAddress(String streetAddress)
-   {
-      this.fullAddress = streetAddress;
+   public static class Builder
+   {   
+      /** Province */
+      private String province;
+   
+      /** Street address */
+      private String streetAddress;
+      
+      /**
+       * @return <code>Address</code> object whose fields are populated
+       * from <code>AddressBuilder</code> set methods
+       */
+      public Address build()
+      {
+         return new Address(province, streetAddress);
+      }
+
+      /**
+       * @param province Province
+       * @return Current Object
+       */
+      public Builder setProvince(String province)
+      {
+         this.province = province;
+         return this;
+      }
+
+      /**
+       * @param streetAddress Street address
+       * @return Current Object
+       */
+      public Builder setFullAddress(String streetAddress)
+      {
+         this.streetAddress = streetAddress;
+         return this;
+      }
+      
    }
    
 }

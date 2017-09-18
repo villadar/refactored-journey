@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.core.enums;
 
@@ -16,6 +11,9 @@ package ca.humanheartnature.core.enums;
  */
 public enum DateFormatEnum
 {
+   /**
+    * yyyy-MM-dd HH:mm:ss
+    */
    ISO_8601("yyyy-MM-dd HH:mm:ss");
    
    /** Contains the value for this enum */

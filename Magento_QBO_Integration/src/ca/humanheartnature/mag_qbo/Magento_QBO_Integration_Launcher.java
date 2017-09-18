@@ -3,15 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  ----------------------------------------------------------------------
- * 1.0  2017-06-14  Initial version
- * 1.1  2017-07-03  Modified help message
- * 1.2  2017-07-24  - Fixed duplicate key errors when populating lookup objects
- *                  - Added tax code mapping file input
- *                  - Using BeanFileReader and BeanFileWriter instead of lambda operations
  */
 package ca.humanheartnature.mag_qbo;
 
@@ -19,7 +10,7 @@ import ca.humanheartnature.core.comm.MySqlConnectionFactory;
 import ca.humanheartnature.core.util.ArgParser;
 import ca.humanheartnature.mag_qbo.comm.MagentoQboDataBridge;
 import ca.humanheartnature.mag_qbo.enums.MagQboPropertyKeys;
-import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
+import ca.humanheartnature.quickbooks.comm.QboDataConnectionFactory;
 import com.intuit.ipp.exception.FMSException;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -198,7 +189,7 @@ public final class Magento_QBO_Integration_Launcher
       {
          MagentoQboDataBridge dataBridge = new MagentoQboDataBridge();
          MySqlConnectionFactory magConnFactory;
-         QboDataServiceSingleton qboService;
+         QboDataConnectionFactory qboService;
          Map<String, String> taxCodeMap = null;
 
          switch(argParser.getPositionalArgValue(OPERATION_ARG_POSITION))
@@ -247,7 +238,7 @@ public final class Magento_QBO_Integration_Launcher
                      config.getProperty(MagQboPropertyKeys.MAGENTO_DATABASE),
                      argParser.getNamedArgValue(MAG_USER_ARG),
                      argParser.getNamedArgValue(MAG_PASSWORD_ARG));
-               qboService = new QboDataServiceSingleton(
+               qboService = new QboDataConnectionFactory(
                      config.getProperty(MagQboPropertyKeys.QBO_BASE_URL),
                      config.getProperty(MagQboPropertyKeys.QBO_APP_TOKEN),
                      config.getProperty(MagQboPropertyKeys.QBO_REALM_ID),
@@ -325,7 +316,7 @@ public final class Magento_QBO_Integration_Launcher
                   System.exit(-1);
                }
                
-               qboService = new QboDataServiceSingleton(
+               qboService = new QboDataConnectionFactory(
                      config.getProperty(MagQboPropertyKeys.QBO_BASE_URL),
                      config.getProperty(MagQboPropertyKeys.QBO_APP_TOKEN),
                      config.getProperty(MagQboPropertyKeys.QBO_REALM_ID),

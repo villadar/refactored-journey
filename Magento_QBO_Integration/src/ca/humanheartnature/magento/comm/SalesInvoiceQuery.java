@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.magento.comm;
 
@@ -70,6 +65,12 @@ public class SalesInvoiceQuery implements JdbcQuery<SalesInvoice>
    
    /* -------------------- OVERRIDDEN METHODS -------------------- */
    
+   /**
+    * Execute a SQL query to retrieve sales receipts
+    * @param dbConn JDBCConnection used to execute the query
+    * @return List of sales invoices
+    * @throws SQLException 
+    */
    @Override
    public List<SalesInvoice> execute(JdbcConnectionFactory dbConn) throws SQLException
    {
@@ -126,68 +127,67 @@ public class SalesInvoiceQuery implements JdbcQuery<SalesInvoice>
                // Check if row is unique due to potential duplicates from possible joins
                if (lastId != rs.getInt("entity_id")) 
                {
-                  SalesInvoice invoice = new SalesInvoice();
-                  invoice.setIndex(rs.getInt("entity_id"));
-                  invoice.setOrderName(rs.getString("ORDER_NAME"));
-                  invoice.setInvoiceName(rs.getString("INVOICE_NAME"));
-                  invoice.setTransactionDate(rs.getTimestamp("created_at"));
-                  invoice.setTotalDiscount(rs.getBigDecimal("discount_amount"));
+                  Address.Builder billingAddressBuilder = new Address.Builder();
+                  billingAddressBuilder
+                     .setProvince(rs.getString("region"))
+                     .setFullAddress(rs.getString("BILLING_STREET"));
+                  
+                  Address.Builder shippingAddressBuilder = new Address.Builder();
+                  shippingAddressBuilder.setFullAddress(rs.getString("SHIPPING_STREET"));
+                  
+                  Customer.Builder custBuilder = new Customer.Builder();
+                  custBuilder
+                     .setFirstName(rs.getString("customer_firstname"))
+                     .setMiddleName(rs.getString("customer_middlename"))
+                     .setLastName(rs.getString("customer_lastname"))
+                     .setEmail(rs.getString("customer_email"));
+                  
+                  ShippingInfo.Builder shippingInfoBuilder = new ShippingInfo.Builder();
+                  shippingInfoBuilder
+                     .setDesignation(rs.getString("shipping_description"))
+                     .setCost(new BigDecimal(rs.getString("shipping_amount")))
+                     .setAddress(rs.getString("SHIPPING_STREET"));
+                  
+                  SalesInvoice.Builder invoiceBuilder = new SalesInvoice.Builder();
+                  invoiceBuilder
+                     .setIndex(rs.getInt("entity_id"))
+                     .setOrderName(rs.getString("ORDER_NAME"))
+                     .setInvoiceName(rs.getString("INVOICE_NAME"))
+                     .setTransactionDate(rs.getTimestamp("created_at"))
+                     .setTotalDiscount(rs.getBigDecimal("discount_amount"));
                   String paymentMethod = rs.getString("method").toUpperCase();
                   if (paymentMethod.contains("SQUARE"))
                   {
-                     invoice.setPaymentMethod(SQUARE);
+                     invoiceBuilder.setPaymentMethod(SQUARE);
                   }
                   else if(paymentMethod.contains("PAYPAL"))
                   {
-                     invoice.setPaymentMethod(PAYPAL);
+                     invoiceBuilder.setPaymentMethod(PAYPAL);
                   }
-                  invoice.setCustomer(new Customer());
-                  invoice.getCustomer().setFirstName(rs.getString("customer_firstname"));
-                  invoice.getCustomer().setMiddleName(
-                        rs.getString("customer_middlename"));
-                  invoice.getCustomer().setLastName(rs.getString("customer_lastname"));
-                  invoice.getCustomer().setEmail(rs.getString("customer_email"));
                   
-                  invoice.getCustomer().setBillingAddress(new Address());
-                  invoice.getCustomer().getBillingAddress().setProvince(
-                        rs.getString("region"));
-                  invoice.getCustomer().getBillingAddress().setFullAddress(
-                        rs.getString("BILLING_STREET"));
+                  custBuilder.setBillingAddress(billingAddressBuilder.build());
+                  custBuilder.setShippingAddress(shippingAddressBuilder.build());
+                  invoiceBuilder.setCustomer(custBuilder.build());
+                  invoiceBuilder.setShippingInfo(shippingInfoBuilder.build());
+                  salesInvoices.add(invoiceBuilder.build());
                   
-                  invoice.getCustomer().setShippingAddress(new Address());
-                  invoice.getCustomer().getShippingAddress().setFullAddress(
-                        rs.getString("SHIPPING_STREET"));
-                  
-                  invoice.setShippingInfo(new ShippingInfo());
-                  invoice.getShippingInfo().setDesignation(
-                        rs.getString("shipping_description"));
-                  invoice.getShippingInfo().setCost(
-                        new BigDecimal(rs.getString("shipping_amount")));
-                  invoice.getShippingInfo().setAddress(
-                        invoice.getCustomer().getShippingAddress().getFullAddress());
-                  
-                  salesInvoices.add(invoice);
-                  lastId = invoice.getIndex();
+                  lastId = rs.getInt("entity_id");
                }
                
                if (willJoinProductsSold)
                {
-                  SaleItem prod = new SaleItem();
-                  prod.setDisplayName(rs.getString("name"));
-                  prod.setSKU(rs.getString("sku"));
-                  prod.setQuantity(rs.getInt("qty_invoiced"));
-                  prod.setUnitPrice(rs.getBigDecimal("UNIT_PRICE"));
-                  prod.setTotalPriceWithTax(
-                        new BigDecimal(Float.toString(rs.getFloat("LINE_PRICE"))));
-                  prod.setTaxCode(rs.getString("code"));
-
-                  if (salesInvoices.get(salesInvoices.size()-1).getSaleItems() == null)
-                  {
-                     salesInvoices.get(salesInvoices.size()-1).setSaleItems(
-                           new LinkedList<>());
-                  }
+                  SaleItem.Builder saleItemBuilder = new SaleItem.Builder();
+                  saleItemBuilder
+                     .setDisplayName(rs.getString("name"))
+                     .setSKU(rs.getString("sku"))
+                     .setQuantity(rs.getInt("qty_invoiced"))
+                     .setUnitPrice(rs.getBigDecimal("UNIT_PRICE"))
+                     .setTotalPriceWithTax(
+                           new BigDecimal(Float.toString(rs.getFloat("LINE_PRICE"))))
+                     .setTaxCode(rs.getString("code"));
                   
-                  salesInvoices.get(salesInvoices.size()-1).getSaleItems().add(prod);
+                  salesInvoices.get(salesInvoices.size()-1).getSaleItems().add(
+                        saleItemBuilder.build());
                }
             }
             

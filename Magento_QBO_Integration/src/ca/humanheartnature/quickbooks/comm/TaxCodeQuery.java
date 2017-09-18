@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -36,8 +31,15 @@ public class TaxCodeQuery implements QboQuery<TaxCode>
    private TaxCodeQuery(){}
    
    
+   /**
+    * Execute query to retrieve list of tax codes from QBO
+    * 
+    * @param conn QBO connection factory
+    * @return List of QBO tax codes
+    * @throws FMSException 
+    */
    @Override
-   public List<TaxCode> execute(QboDataServiceSingleton conn) throws FMSException
+   public List<TaxCode> execute(QboDataConnectionFactory conn) throws FMSException
    {
       String query =
             "SELECT name, id " +
@@ -46,7 +48,7 @@ public class TaxCodeQuery implements QboQuery<TaxCode>
       
       LOGGER.log(Level.FINER, "QuickBooks Online query:\n{0}", query);
          
-      QueryResult queryResult = conn.getInstance().executeQuery(query);
+      QueryResult queryResult = conn.getConnection().executeQuery(query);
       List<TaxCode> taxCodes = (List<TaxCode>)queryResult.getEntities();
       
       LOGGER.log(Level.FINER, "Result set size: {0}", taxCodes.size());

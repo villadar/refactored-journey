@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.util;
 
@@ -15,7 +10,7 @@ import ca.humanheartnature.abstracts.util.LookupObject;
 import ca.humanheartnature.magento.struct.SalesInvoice.PaymentMethodEnum;
 import static ca.humanheartnature.magento.struct.SalesInvoice.PaymentMethodEnum.PAYPAL;
 import static ca.humanheartnature.magento.struct.SalesInvoice.PaymentMethodEnum.SQUARE;
-import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
+import ca.humanheartnature.quickbooks.comm.QboDataConnectionFactory;
 import ca.humanheartnature.quickbooks.comm.QboDataSource;
 import com.intuit.ipp.data.PaymentMethod;
 import com.intuit.ipp.exception.FMSException;
@@ -45,7 +40,7 @@ public class PaymentMethodIndexLookup
     *                     method
     * @throws FMSException 
     */
-   public PaymentMethodIndexLookup(QboDataServiceSingleton qboDataService,
+   public PaymentMethodIndexLookup(QboDataConnectionFactory qboDataService,
                                    String creditCardMethod,
                                    String paypalMethod) throws FMSException
    {
@@ -79,6 +74,9 @@ public class PaymentMethodIndexLookup
             });
    }
    
+   /**
+    * @return Contents of the map used by this class
+    */
    @Override
    public String toString()
    {
@@ -90,6 +88,10 @@ public class PaymentMethodIndexLookup
       return commaDelimited.toString();
    }
    
+   /**
+    * @param paymentMethodType Payment method to retrieve the index of
+    * @return Internal QBO index of the payment method type, if it exists in QBO
+    */
    @Override
    public Optional<String> lookup(PaymentMethodEnum paymentMethodType)
    {

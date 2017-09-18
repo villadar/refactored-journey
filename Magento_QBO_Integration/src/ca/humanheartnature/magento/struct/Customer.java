@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.magento.struct;
 
@@ -17,35 +12,60 @@ import java.util.Objects;
 /**
  * Contains customer-specific information
  */
-public class Customer extends DatabaseAccessObject
+public class Customer implements DatabaseAccessObject
 {
    private static final long serialVersionUID = 1L;
    
    /** Primary index */
-   private Integer index;
+   private final Integer index;
    
    /** Customer email */
-   private String email;
+   private final String email;
    
    /** Customer first name */
-   private String firstName;
+   private final String firstName;
    
    /** Customer middle name */
-   private String middleName;
+   private final String middleName;
    
    /** Customer last name */
-   private String lastName;
+   private final String lastName;
    
    /** Billing address */
-   private Address billingAddress;
+   private final Address billingAddress;
   
    /** Shipping address */
-   private Address shippingAddress;
+   private final Address shippingAddress;
+   
+   
+   
+   /* -------------------- CONSTRUCTORS -------------------- */
+   
+   private Customer(Integer index,
+                   String email,
+                   String firstName,
+                   String middleName,
+                   String lastName,
+                   Address billingAddress,
+                   Address shippingAddress)
+   {
+      this.index = index;
+      this.email = email;
+      this.firstName = firstName;
+      this.middleName = middleName;
+      this.lastName = lastName;
+      this.billingAddress = billingAddress;
+      this.shippingAddress = shippingAddress;
+   }
    
    
    
    /* -------------------- OVERRIDDEN METHODS -------------------- */
    
+   /**
+    * @param obj Object to compare equivalency
+    * @return True if {@link #email} are equal
+    */
    @Override
    public boolean equals(Object obj)
    {
@@ -69,7 +89,7 @@ public class Customer extends DatabaseAccessObject
    
 
    
-   /* -------------------- ACCESSORS/MUTATORS -------------------- */
+   /* -------------------- ACCESSORS -------------------- */
    
    /**
     * @return Primary index
@@ -77,14 +97,6 @@ public class Customer extends DatabaseAccessObject
    public Integer getIndex()
    {
       return index;
-   }
-
-   /**
-    * @param index Primary index
-    */
-   public void setIndex(Integer index)
-   {
-      this.index = index;
    }
 
    /**   
@@ -96,27 +108,11 @@ public class Customer extends DatabaseAccessObject
    }
 
    /**
-    * @param email Customer email
-    */
-   public void setEmail(String email)
-   {
-      this.email = email;
-   }
-
-   /**
     * @return First name
     */
    public String getFirstName()
    {
       return firstName;
-   }
-
-   /**
-    * @param firstName First name
-    */
-   public void setFirstName(String firstName)
-   {
-      this.firstName = firstName;
    }
 
    /**
@@ -128,27 +124,11 @@ public class Customer extends DatabaseAccessObject
    }
 
    /**
-    * @param billingAddress Billing address
-    */
-   public void setBillingAddress(Address billingAddress)
-   {
-      this.billingAddress = billingAddress;
-   }
-
-   /**
     * @return Shipping address
     */
    public Address getShippingAddress()
    {
       return shippingAddress;
-   }
-
-   /**
-    * @param shippingAddress Shipping address
-    */
-   public void setShippingAddress(Address shippingAddress)
-   {
-      this.shippingAddress = shippingAddress;
    }
 
    /**
@@ -160,14 +140,6 @@ public class Customer extends DatabaseAccessObject
    }
 
    /**
-    * @param middleName Customer middle name
-    */
-   public void setMiddleName(String middleName)
-   {
-      this.middleName = middleName;
-   }
-
-   /**
     * @return Customer last name
     */
    public String getLastName()
@@ -176,23 +148,131 @@ public class Customer extends DatabaseAccessObject
    }
 
    /**
-    * @param lastName Customer last name
-    */
-   public void setLastName(String lastName)
-   {
-      this.lastName = lastName;
-   }
-
-   /**
     * @return Customers full name in the format of [First name] [Middle name] [Last name]
     */
    public String getFullName()
    {
-      String firstName = (this.firstName==null? "" : this.firstName + " ");
-      String middleName = (this.middleName==null? "" : this.middleName + " ");
-      String lastName = (this.lastName==null? "" : this.lastName);
+      return (this.firstName==null? "" : this.firstName + " ") +
+             (this.middleName==null? "" : this.middleName + " ") +
+             (this.lastName==null? "" : this.lastName);
+   }
+   
+   
+   
+   /* -------------------- NESTED CLASSES -------------------- */
+   
+   /**
+    * Generates an immutable <code>Customer</code> object whose fields are
+    * populated through the builder's set methods
+    */
+   public static class Builder
+   {
+      /** Primary index */
+      private Integer index;
+
+      /** Customer email */
+      private String email;
+
+      /** Customer first name */
+      private String firstName;
+
+      /** Customer middle name */
+      private String middleName;
+
+      /** Customer last name */
+      private String lastName;
+
+      /** Billing address */
+      private Address billingAddress;
+
+      /** Shipping address */
+      private Address shippingAddress;
       
-      return firstName + middleName + lastName;
+      /**
+       * @return <code>Customer</code> object whose fields are populated
+       * from <code>CustomerBuilder</code> set methods
+       */
+      public Customer build()
+      {
+         return new Customer(index,
+                             email,
+                             firstName,
+                             middleName,
+                             lastName,
+                             billingAddress,
+                             shippingAddress);
+      }
+
+      /**
+       * @param index Primary index
+       * @return Current object
+       */
+      public Builder setIndex(Integer index)
+      {
+         this.index = index;
+         return this;
+      }
+
+      /**
+       * @param email Customer email
+       * @return Current object
+       */
+      public Builder setEmail(String email)
+      {
+         this.email = email;
+         return this;
+      }
+
+      /**
+       * @param firstName First name
+       * @return Current object
+       */
+      public Builder setFirstName(String firstName)
+      {
+         this.firstName = firstName;
+         return this;
+      }
+
+      /**
+       * @param billingAddress Billing address
+       * @return Current object
+       */
+      public Builder setBillingAddress(Address billingAddress)
+      {
+         this.billingAddress = billingAddress;
+         return this;
+      }
+
+      /**
+       * @param shippingAddress Shipping address
+       * @return Current object
+       */
+      public Builder setShippingAddress(Address shippingAddress)
+      {
+         this.shippingAddress = shippingAddress;
+         return this;
+      }
+
+      /**
+       * @param middleName Customer middle name
+       * @return Current object
+       */
+      public Builder setMiddleName(String middleName)
+      {
+         this.middleName = middleName;
+         return this;
+      }
+
+      /**
+       * @param lastName Customer last name
+       * @return Current object
+       */
+      public Builder setLastName(String lastName)
+      {
+         this.lastName = lastName;
+         return this;
+      }
+   
    }
 
 }

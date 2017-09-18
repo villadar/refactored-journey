@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -32,14 +27,21 @@ public class ClassQuery implements QboQuery<Class>
    
    /* -------------------- OVERRIDDEN METHODS -------------------- */
    
+   /**
+    * Perform query to retrieve list of QBO classes
+    * 
+    * @param conn QBO connection
+    * @return List of QBO Classes
+    * @throws FMSException 
+    */
    @Override
-   public List<Class> execute(QboDataServiceSingleton conn) throws FMSException
+   public List<Class> execute(QboDataConnectionFactory conn) throws FMSException
    {
       String query = "SELECT id FROM class " + whereClause;
       
       LOGGER.log(Level.FINER, "QuickBooks Online query:\n{0}", query);
          
-      QueryResult queryResult = conn.getInstance().executeQuery(query);
+      QueryResult queryResult = conn.getConnection().executeQuery(query);
       List<Class> classes = (List<Class>) queryResult.getEntities();
       LOGGER.log(Level.FINER, "Result set size: {0}", classes.size());
       return classes;

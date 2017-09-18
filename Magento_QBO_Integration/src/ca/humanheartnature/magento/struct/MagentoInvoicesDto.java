@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.magento.struct;
 
@@ -20,7 +15,7 @@ import java.util.Set;
  * {@link SalesInvoice}s and the related {@link Customer}s and {@link SaleItem}s
  * 
  */
-public class MagentoInvoicesDto extends DataTransferObject
+public class MagentoInvoicesDto implements DataTransferObject
 {
    private static final long serialVersionUID = 1L;
    

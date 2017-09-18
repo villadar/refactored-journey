@@ -3,18 +3,11 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  ------------------------------------------------
- * 1.0  2017-06-14  Initial version
- * 1.1  2017-07-04  - Resolved duplicate key errors when creating maps
- *                  - Added null argument check 
  */
 package ca.humanheartnature.quickbooks.util;
 
 import ca.humanheartnature.abstracts.util.LookupObject;
-import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
+import ca.humanheartnature.quickbooks.comm.QboDataConnectionFactory;
 import ca.humanheartnature.quickbooks.comm.QboDataSource;
 import com.intuit.ipp.data.Deposit;
 import com.intuit.ipp.exception.FMSException;
@@ -38,7 +31,7 @@ public class DepositAccountIndexLookup
     * @param qboDataService Used to retrieve key-value pairing from QBO
     * @throws FMSException 
     */
-   public DepositAccountIndexLookup(QboDataServiceSingleton qboDataService)
+   public DepositAccountIndexLookup(QboDataConnectionFactory qboDataService)
          throws FMSException
    {
       if (qboDataService == null)
@@ -56,6 +49,9 @@ public class DepositAccountIndexLookup
                                    (ref1, ref2) -> ref1));
    }
    
+   /**
+    * @return Contents of the lookup table
+    */
    @Override
    public String toString()
    {
@@ -67,6 +63,10 @@ public class DepositAccountIndexLookup
       return commaDelimited.toString();
    }
    
+   /**
+    * @param depositAccount Deposit account to retrieve the index of
+    * @return Internal QBO index of the deposit account, if it exists in QBO
+    */
    @Override
    public Optional<String> lookup(String depositAccount)
    {

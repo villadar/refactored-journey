@@ -3,11 +3,6 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
  */
 package ca.humanheartnature.quickbooks.comm;
 
@@ -35,12 +30,12 @@ public class QboDataSource
    private static final Logger LOGGER = Logger.getLogger(QboDataSource.class.getName());
    
    /** Interface for QBO data */
-   private final QboDataServiceSingleton qboService;
+   private final QboDataConnectionFactory qboService;
    
    /**
     * @param dataService Interface for QBO data
     */
-   public QboDataSource(QboDataServiceSingleton dataService)
+   public QboDataSource(QboDataConnectionFactory dataService)
    {
       this.qboService = dataService;
    }

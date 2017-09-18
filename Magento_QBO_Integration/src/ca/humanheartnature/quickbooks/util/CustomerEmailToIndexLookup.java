@@ -3,17 +3,11 @@
  *
  * This code cannot be used, copied, or redistributed without express consent from the
  * author. Please contact villadarez@gmail.com for permission to use this code.
- *
- *
- * Ver  Date        Change Log
- * ---  ----------  -----------------------------------
- * 1.0  2017-06-14  Initial version
- * 1.1  2017-07-24  Added null argument check
  */
 package ca.humanheartnature.quickbooks.util;
 
 import ca.humanheartnature.abstracts.util.LookupObject;
-import ca.humanheartnature.quickbooks.comm.QboDataServiceSingleton;
+import ca.humanheartnature.quickbooks.comm.QboDataConnectionFactory;
 import ca.humanheartnature.quickbooks.comm.QboDataSource;
 import com.intuit.ipp.data.Customer;
 import com.intuit.ipp.exception.FMSException;
@@ -37,7 +31,7 @@ public class CustomerEmailToIndexLookup
     * @param emails  Set of emails to be used as keys
     * @throws FMSException 
     */
-   public CustomerEmailToIndexLookup(QboDataServiceSingleton dataService,
+   public CustomerEmailToIndexLookup(QboDataConnectionFactory dataService,
                                      Set<String> emails) throws FMSException
    {
       if (dataService == null || emails == null)
@@ -67,6 +61,10 @@ public class CustomerEmailToIndexLookup
       customerEmailToIndexMapping.put(customerEmail, customerId);
    }
    
+   /**
+    * @param customerEmail Customer email to retrieve the index of
+    * @return Internal QBO index of the customer if their email is found
+    */
    @Override
    public Optional<String> lookup(String customerEmail)
    {
