@@ -10,6 +10,7 @@ import static ca.humanheartnature.core.enums.DateFormatEnum.ISO_8601;
 import ca.humanheartnature.core.exception.DataTransformationException;
 import ca.humanheartnature.core.exception.QboException;
 import ca.humanheartnature.core.util.DateFormatFactory;
+import ca.humanheartnature.core.util.StringUtil;
 import ca.humanheartnature.mag_qbo.enums.MagQboPropertyKeys;
 import ca.humanheartnature.magento.struct.Customer;
 import ca.humanheartnature.magento.struct.MagentoInvoicesDto;
@@ -88,13 +89,12 @@ public final class MagentoToQuickBooksTransformer
    /** Map between Magento and QBO tax code identifiers */
    private Map<String, String> taxCodeMap;
    
-   /** True if there was an error encountered when executing the {@link #apply} method */
-   private boolean hasErrorEncountered;
-   
    /** List of error messages appended to the <code>DataTransformationException</code>
      * that is thrown if <code>wasErrorEncountered</code> is true */
    private final List<String> errorLog = new ArrayList<>();
    
+   /** Number of invoices that encountered errors during processing */
+   private int errorCount;
    
    
    /* -------------------- CONSTRUCTORS -------------------- */
@@ -181,7 +181,7 @@ public final class MagentoToQuickBooksTransformer
          
          Set<SaleItem> saleItems = salesDataTransfer.getSaleItems();
          Set<String> skus = saleItems.stream()
-            .map(product -> product.getSKU())
+            .map(product -> StringUtil.removeTrailingAlphabets(product.getSKU()))
             .collect(Collectors.toSet());
          SkuToIndexLookup skuLookup = new SkuToIndexLookup(qboService,skus);
          
@@ -191,6 +191,7 @@ public final class MagentoToQuickBooksTransformer
          // </editor-fold>
       
          List<SalesInvoice> magentoInvoices = salesDataTransfer.getSalesInvoices();
+         LOGGER.log(Level.INFO, "{0} invoices to transform", magentoInvoices.size());
          List<SalesReceipt> qboReceipts = magentoInvoices.stream()
             .map(magInvoice ->
             {
@@ -235,19 +236,29 @@ public final class MagentoToQuickBooksTransformer
                }
                catch (MagToQboTransformException ex)
                {
-                  hasErrorEncountered = true; // Can't use mutable local variables in lambda
-                  errorLog.add(ex.getMessage());
+                  errorCount++;
+                  String errorMessage = "";
+                  if (!errorLog.isEmpty())
+                  {
+                     errorMessage += "\n-----------------------------------\n";
+                  }
+                  errorMessage += "Error encountered\n";
+                  errorMessage += "The following order will be skipped:\n";
+                  errorMessage += "Order #: " + magInvoice.getOrderName() + "\n";
+                  errorMessage += "Invoice #: " + magInvoice.getInvoiceName() + "\n";
+                  errorMessage += ex.getMessage();
+                  errorLog.add(errorMessage);
                   return null;
                }
             })
+            .filter(qboReceipt -> qboReceipt != null)
             .collect(Collectors.toList());
          
-            if (hasErrorEncountered)
+            if (errorCount > 0)
             {
-               String errorMessage = errorLog.stream()
-                     .collect(Collectors.joining("\n"));
-               throw new DataTransformationException(
-                     "Errors encountered during data translation:\n" + errorMessage);
+               LOGGER.log(Level.WARNING, "{0} errors encountered", errorCount);
+               LOGGER.log(Level.WARNING,
+                          errorLog.stream().collect(Collectors.joining("\n")));
             }
 
             return new QboInvoicesDto(qboReceipts);
@@ -400,12 +411,17 @@ public final class MagentoToQuickBooksTransformer
                                      ClassIndexLookup classLookup,
                                      SkuToIndexLookup skuLookup)
    {
-      String inventoryIndex = skuLookup.lookup(magentoSaleItem.getSKU())
+      // Trailing alphabets in SKU denote sale items on sale (Magento requires sale
+      // items to have unique SKU
+      String actualSku = StringUtil.removeTrailingAlphabets(magentoSaleItem.getSKU());
+      String inventoryIndex = skuLookup.lookup(actualSku)
          .orElseThrow(() -> 
             new MagToQboTransformException(
-                  "Failed to look up sku: " + magentoSaleItem.getSKU() +
-                  "\nSKU lookup table content: " + skuLookup));
+                  "Failed to look up sku: " + actualSku));
 
+      LOGGER.log(Level.FINEST, "Failed to find {0} in SKU lookup table: {1}",
+                 new Object[]{actualSku, skuLookup});
+      
       ReferenceType productLineRef = new ReferenceType();
       productLineRef.setValue(inventoryIndex);
       

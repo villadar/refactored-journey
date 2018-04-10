@@ -46,7 +46,8 @@ public class QboSalesInvoiceLoader implements Consumer<QboInvoicesDto>
          }
          catch(FMSException ex)
          {
-            throw new DataLoadingException("QBO load error", ex);
+            throw new DataLoadingException(
+                  "QBO load error on " + receipt.getDocNumber(), ex);
          }
       });
    }
