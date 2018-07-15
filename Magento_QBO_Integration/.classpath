@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="dist/lib/ipp-java-qbapihelper-3.0.0-jar-with-dependencies.jar"/>
+	<classpathentry kind="lib" path="dist/lib/ipp-v3-java-devkit-3.0.0-jar-with-dependencies.jar"/>
+	<classpathentry kind="lib" path="dist/lib/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="dist/lib/mysql-connector-java-5.0.8-bin.jar"/>
+	<classpathentry kind="lib" path="dist/lib/slf4j-jdk14-1.6.4.jar"/>
+	<classpathentry kind="lib" path="dist/Magento_QBO_Integration.jar"/>
+	<classpathentry kind="lib" path="lib/CopyLibs/org-netbeans-modules-java-j2seproject-copylibstask.jar"/>
+	<classpathentry kind="lib" path="lib/hamcrest/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="lib/ipp-java-qbapihelper-1.2.2-jar-with-dependencies.jar"/>
+	<classpathentry kind="lib" path="lib/ipp-java-qbapihelper-3.0.0-jar-with-dependencies.jar"/>
+	<classpathentry kind="lib" path="lib/ipp-v3-java-data-3.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/ipp-v3-java-devkit-2.9.0-jar-with-dependencies.jar"/>
+	<classpathentry kind="lib" path="lib/ipp-v3-java-devkit-3.0.0-jar-with-dependencies.jar"/>
+	<classpathentry kind="lib" path="lib/junit_4/junit-4.12-javadoc.jar"/>
+	<classpathentry kind="lib" path="lib/junit_4/junit-4.12-sources.jar"/>
+	<classpathentry kind="lib" path="lib/junit_4/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="lib/mysql-connector-java-5.0.8-bin.jar"/>
+	<classpathentry kind="lib" path="lib/oauth2-platform-api-3.0.0-jar-with-dependencies.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-jdk14-1.6.4.jar"/>
+	<classpathentry kind="output" path="build/classes"/>
+</classpath>

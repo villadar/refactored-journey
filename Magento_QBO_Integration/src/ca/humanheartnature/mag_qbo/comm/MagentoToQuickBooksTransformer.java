@@ -321,7 +321,7 @@ public final class MagentoToQuickBooksTransformer
                                                     SalesInvoice magInvoice)
    {
       // Set receipt name identifier
-      qboSalesReceipt.setDocNumber(magInvoice.getOrderName());
+      qboSalesReceipt.setDocNumber(magInvoice.getOrderName()+"xxx");
 
       // Set QBO transaction date
       Calendar transactionDate = Calendar.getInstance();
@@ -418,9 +418,6 @@ public final class MagentoToQuickBooksTransformer
          .orElseThrow(() -> 
             new MagToQboTransformException(
                   "Failed to look up sku: " + actualSku));
-
-      LOGGER.log(Level.FINEST, "Failed to find {0} in SKU lookup table: {1}",
-                 new Object[]{actualSku, skuLookup});
       
       ReferenceType productLineRef = new ReferenceType();
       productLineRef.setValue(inventoryIndex);
@@ -683,7 +680,7 @@ public final class MagentoToQuickBooksTransformer
       newCustomer.setFullyQualifiedName(magCustomer.getFullName());
       newCustomer.setGivenName(magCustomer.getFirstName());
       newCustomer.setMiddleName(magCustomer.getMiddleName());
-      newCustomer.setFamilyName(magCustomer.getLastName());
+      newCustomer.setFamilyName(magCustomer.getLastName().replace("'", ""));
 
       EmailAddress customerEmailAddr = new EmailAddress();
       customerEmailAddr.setAddress(magCustomer.getEmail());

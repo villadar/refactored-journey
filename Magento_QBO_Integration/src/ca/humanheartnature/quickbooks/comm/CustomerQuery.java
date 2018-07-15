@@ -179,7 +179,7 @@ public class CustomerQuery implements QboQuery<Customer>
             {
                query.whereClause += " AND ";
             }
-            query.whereClause += "displayname LIKE '" + displayName + "'";
+            query.whereClause += "displayname LIKE '" + displayName.replace("'", "") + "'";
          }
          
          if (highestColumn != null)
